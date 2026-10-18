@@ -16,7 +16,7 @@
 <div class="app">
 <header><div class="brand"><span class="mark">M3</span><span>MCU / CAD</span></div><div class="headtools"><button id="reset" title="复位视角" aria-label="复位视角">⟳</button><button id="wire" title="线框模式" aria-label="线框模式">▦</button></div></header>
 <main class="workspace"><div class="viewport" id="viewport"><canvas id="scene"></canvas><div class="loading" id="loading">LOADING 3D SCENE</div><div class="error" id="error"></div><div class="corner">3D / INTERACTIVE</div>
-<div class="tools"><button id="explodeBtn" title="拆解" aria-label="拆解">⇵</button><div class="slider"><input id="explode" aria-label="拆解程度" type="range" min="0" max="100" value="0"><span id="explodeVal">0%</span></div><button id="shellBtn" title="隐藏外壳" aria-label="隐藏外壳">◉</button><button id="showBtn" title="显示全部" aria-label="显示全部">◌</button></div>
+<div class="tools"><button id="explodeBtn" title="拆解" aria-label="拆解">⇵</button><div class="slider"><input id="explode" aria-label="拆解程度" type="range" min="0" max="100" value="0"><span id="explodeVal">0%</span></div><button id="shellBtn" title="隐藏外壳" aria-label="隐藏外壳">◉</button><button id="hidePartBtn" title="隐藏选中零件" aria-label="隐藏选中零件">−</button><button id="isolateBtn" title="隔离选中零件" aria-label="隔离选中零件">◎</button><button id="showBtn" title="显示全部并复位拆解" aria-label="显示全部并复位拆解">◌</button></div>
 <div class="views"><button data-view="iso">3D</button><button data-view="top">俯视</button><button data-view="side">侧视</button></div>
 </div></main></div>
 <script type="module">
@@ -25,8 +25,8 @@ import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
 import {RoundedBoxGeometry} from 'three/addons/geometries/RoundedBoxGeometry.js';
 
 const canvas=document.querySelector('#scene'),viewport=document.querySelector('#viewport'),loading=document.querySelector('#loading'),errorBox=document.querySelector('#error');
-let renderer,scene,camera,controls,wire=false,exploded=0,hideShell=false;
-const parts={}; const materials={};
+let renderer,scene,camera,controls,wire=false,exploded=0,hideShell=false,selectedPart=null;
+const parts={}; const materials={}; const originalMaterials=new WeakMap();
 const mat=(key,color,metalness=0,roughness=.5)=>materials[key]|| (materials[key]=new THREE.MeshStandardMaterial({color,metalness,roughness}));
 const metal=mat('metal',0x8e9aa2,.82,.3),darkMetal=mat('darkMetal',0x3a444c,.72,.35),edge=mat('edge',0xb8c1c7,.78,.24),black=mat('black',0x151b20,.22,.4),seal=mat('seal',0x222a2d,.05,.8),copper=mat('copper',0xc17a3b,.8,.26),gold=mat('gold',0xd1ad69,.72,.24),pcbMat=mat('pcb',0x174c3c,.25,.42),chip=mat('chip',0x202a30,.25,.28),blue=mat('blue',0x377b91,.55,.28),ceramic=mat('ceramic',0x9fa9b0,.25,.38),silver=mat('silver',0xc4ccd1,.86,.22);
 const root=new THREE.Group();root.name='assembly';
@@ -41,6 +41,9 @@ function makeModel(){
  const housing=group('housing');
  // Die-cast lower shell and perimeter flange
  box(housing,[5.9,.46,3.55],[0,.05,0],darkMetal,.22);
+ // Additional cast ribs and machined bosses; illustrative until OEM dimensions are verified
+ for(let x=-2.25;x<=2.26;x+=.75){box(housing,[.075,.16,2.35],[x,-.12,0],edge,.025)}
+ for(const z of [-1.2,1.2])for(let x=-1.9;x<=1.91;x+=.76){cyl(housing,.11,.13,.16,[x,.34,z],darkMetal,24);cyl(housing,.055,.055,.17,[x,.42,z],silver,8)}
  box(housing,[5.72,.34,3.38],[0,.25,0],metal,.19);
  box(housing,[5.42,.14,3.08],[0,.43,0],black,.16);
  // machined perimeter lips and ribs
@@ -106,7 +109,7 @@ function makeModel(){
 try{
  scene=new THREE.Scene();scene.background=new THREE.Color(0x111820);scene.fog=new THREE.Fog(0x111820,13,27);
  camera=new THREE.PerspectiveCamera(38,1,.1,100);camera.position.set(8,6.2,9);
- renderer=new THREE.WebGLRenderer({canvas,antialias:true,alpha:false,powerPreference:'high-performance'});renderer.setPixelRatio(Math.min(devicePixelRatio||1,2));renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.15;
+ renderer=new THREE.WebGLRenderer({canvas,antialias:true,alpha:false,powerPreference:'high-performance'});renderer.setPixelRatio(Math.min(devicePixelRatio||1,1.5));renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.15;
  scene.add(new THREE.HemisphereLight(0xcbd9e6,0x20242a,2.1));
  const key=new THREE.DirectionalLight(0xfff1dc,3.1);key.position.set(5,9,7);scene.add(key);
  const rim=new THREE.DirectionalLight(0x9ac9e2,2.4);rim.position.set(-7,4,-5);scene.add(rim);
@@ -124,13 +127,17 @@ try{
  document.querySelector('#explodeBtn').onclick=()=>{const input=document.querySelector('#explode');input.value=exploded>0?0:65;input.dispatchEvent(new Event('input'))};
  document.querySelector('#wire').onclick=()=>{wire=!wire;Object.values(materials).forEach(m=>m.wireframe=wire);document.querySelector('#wire').classList.toggle('active',wire)};
  document.querySelector('#shellBtn').onclick=()=>{hideShell=!hideShell;parts.housing.visible=!hideShell;parts.cover.visible=!hideShell;document.querySelector('#shellBtn').classList.toggle('active',hideShell)};
- document.querySelector('#showBtn').onclick=()=>{Object.values(parts).forEach(g=>g.visible=true);hideShell=false;document.querySelector('#shellBtn').classList.remove('active')};
+ function clearSelection(){if(!selectedPart)return;selectedPart.traverse(m=>{if(m.isMesh&&originalMaterials.has(m)){m.material=originalMaterials.get(m);originalMaterials.delete(m)}});selectedPart=null;document.querySelector('#isolateBtn').classList.remove('active')}
+ function selectPart(g){clearSelection();selectedPart=g;g.traverse(m=>{if(m.isMesh&&m.material){originalMaterials.set(m,m.material);m.material=m.material.clone();if(m.material.emissive)m.material.emissive.setHex(0x24594d)}})}
+ document.querySelector('#hidePartBtn').onclick=()=>{if(selectedPart){selectedPart.visible=false;clearSelection()}};
+ document.querySelector('#isolateBtn').onclick=()=>{if(!selectedPart)return;const isolate=document.querySelector('#isolateBtn').classList.toggle('active');Object.entries(parts).forEach(([id,g])=>g.visible=isolate?(g===selectedPart):true);if(isolate){hideShell=false;document.querySelector('#shellBtn').classList.remove('active')}};
+ document.querySelector('#showBtn').onclick=()=>{Object.values(parts).forEach(g=>g.visible=true);hideShell=false;clearSelection();document.querySelector('#shellBtn').classList.remove('active');document.querySelector('#isolateBtn').classList.remove('active');const input=document.querySelector('#explode');input.value=0;applyExplode(0);document.querySelector('#explodeVal').textContent='0%';document.querySelector('#explodeBtn').classList.remove('active')};
  function setView(v){if(v==='top')camera.position.set(0,13,.01);else if(v==='side')camera.position.set(12,2,0);else camera.position.set(8,6.2,9);controls.target.set(0,.35,0);controls.update()}
  document.querySelectorAll('[data-view]').forEach(b=>b.onclick=()=>setView(b.dataset.view));
  document.querySelector('#reset').onclick=()=>{document.querySelector('#explode').value=0;document.querySelector('#explode').dispatchEvent(new Event('input'));document.querySelector('#showBtn').click();wire=false;Object.values(materials).forEach(m=>m.wireframe=false);document.querySelector('#wire').classList.remove('active');setView('iso')};
  let down=null;const ray=new THREE.Raycaster(),pointer=new THREE.Vector2();
  renderer.domElement.addEventListener('pointerdown',e=>{down={x:e.clientX,y:e.clientY}});
- renderer.domElement.addEventListener('pointerup',e=>{if(!down||Math.hypot(e.clientX-down.x,e.clientY-down.y)>5){down=null;return}down=null;const r=canvas.getBoundingClientRect();pointer.x=(e.clientX-r.left)/r.width*2-1;pointer.y=-(e.clientY-r.top)/r.height*2+1;ray.setFromCamera(pointer,camera);const hits=ray.intersectObjects(root.children,true);if(hits.length){let o=hits[0].object;while(o&&o.parent!==root)o=o.parent;if(o&&o.userData.partId){Object.values(parts).forEach(g=>g.traverse(m=>{if(m.isMesh&&m.material&&m.material.emissive){m.material.emissive.setHex(0x000000)}}));o.traverse(m=>{if(m.isMesh&&m.material&&m.material.emissive)m.material.emissive.setHex(0x17302a)})}}});
+ renderer.domElement.addEventListener('pointerup',e=>{if(!down||Math.hypot(e.clientX-down.x,e.clientY-down.y)>5){down=null;return}down=null;const r=canvas.getBoundingClientRect();pointer.x=(e.clientX-r.left)/r.width*2-1;pointer.y=-(e.clientY-r.top)/r.height*2+1;ray.setFromCamera(pointer,camera);const hits=ray.intersectObjects(root.children,true).filter(h=>h.object.visible);if(hits.length){let o=hits[0].object;while(o&&o.parent!==root)o=o.parent;if(o&&o.userData.partId)selectPart(o)}});
  function animate(){requestAnimationFrame(animate);controls.update();renderer.render(scene,camera)}animate();loading.style.display='none';
 }catch(err){console.error('MCU 3D init failed:',err);loading.style.display='none';errorBox.style.display='block';const msg=err&&err.message?err.message:String(err);errorBox.textContent='3D 初始化失败：'+msg+'。请截图发给我。'}
 </script>
