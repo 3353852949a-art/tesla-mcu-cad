@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"><meta name="theme-color" content="#10151b"><title>Model 3 MCU · 3D Assembly</title>
+<style>
+:root{color-scheme:dark;--bg:#0c1117;--panel:#141c25;--line:#293746;--muted:#93a3b3;--text:#edf3f8;--accent:#a7d8ff}
+*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:var(--bg);font-family:Inter,system-ui,-apple-system,"Segoe UI",sans-serif;color:var(--text)}#view{position:absolute;inset:0}canvas{display:block;width:100%;height:100%;touch-action:none}
+header{position:absolute;top:0;left:0;right:0;padding:calc(14px + env(safe-area-inset-top)) 16px 12px;display:flex;align-items:center;justify-content:space-between;pointer-events:none;background:linear-gradient(#0c1117e8,transparent)}.brand{font-size:11px;letter-spacing:.2em;color:#9eb1c2}.heading{font-size:19px;font-weight:650;letter-spacing:.01em;margin-top:5px}.tag{font-size:10px;color:#c1d0dc;border:1px solid #526273;border-radius:99px;padding:6px 9px;background:#111923c9}
+.panel{position:absolute;left:12px;right:12px;bottom:calc(12px + env(safe-area-inset-bottom));background:#101720eF;border:1px solid #344352;border-radius:18px;padding:12px;backdrop-filter:blur(18px);box-shadow:0 14px 50px #0007}.row{display:flex;gap:7px;align-items:center;flex-wrap:wrap}.row+.row{margin-top:9px}.btn{border:1px solid #354657;background:#1b2632;color:#e6eef6;border-radius:10px;padding:9px 11px;font-size:12px;min-height:36px;flex:1;white-space:nowrap}.btn:active,.btn.active{background:#d8e9f7;color:#101820;border-color:#d8e9f7}.btn.primary{background:#b8dfff;color:#101820;border-color:#b8dfff}.label{font-size:10px;letter-spacing:.14em;color:#90a2b4;margin-right:2px}.range{width:100%;accent-color:#b8dfff}.sub{display:flex;justify-content:space-between;align-items:center;font-size:11px;color:#93a3b3;margin:0 1px 6px}.hint{position:absolute;top:94px;left:50%;transform:translateX(-50%);white-space:nowrap;border:1px solid #344352;border-radius:99px;padding:7px 11px;background:#101720a8;color:#aab8c6;font-size:11px;pointer-events:none}.cross{position:absolute;right:17px;top:90px;font-size:10px;color:#8093a4;letter-spacing:.12em;writing-mode:vertical-rl}.status{display:flex;gap:7px;align-items:center;font-size:10px;color:#9eafbd}.dot{width:6px;height:6px;border-radius:50%;background:#80c6a5;box-shadow:0 0 8px #80c6a5}
+@media(min-width:760px){.panel{left:auto;right:20px;bottom:20px;width:340px}.hint{top:100px}.heading{font-size:22px}}
+</style></head><body><div id="view"></div>
+<header><div><div class="brand">TESLA · POWER ELECTRONICS</div><div class="heading">Model 3 MCU <span style="color:#8ea6b8;font-weight:350">/ Assembly</span></div></div><div class="tag">3D STUDY MODEL</div></header>
+<div class="hint">拖动旋转 · 双指缩放</div><div class="cross">CONCEPT GEOMETRY · NOT OEM CAD</div>
+<section class="panel"><div class="sub"><span class="status"><i class="dot"></i> INTERACTIVE ASSEMBLY</span><span id="modeText">完整装配</span></div>
+<div class="row"><button class="btn primary" id="explode">拆解视图</button><button class="btn" id="shell">外壳透明</button><button class="btn" id="reset">重置视角</button></div>
+<div class="row"><button class="btn" data-view="iso">等轴测</button><button class="btn" data-view="top">俯视</button><button class="btn" data-view="side">侧视</button><button class="btn" data-view="bottom">底视</button></div>
+<div class="row"><button class="btn active" data-part="all">全部</button><button class="btn" data-part="housing">壳体</button><button class="btn" data-part="power">功率模块</button><button class="btn" data-part="pcb">控制板</button><button class="btn" data-part="bus">铜排</button></div>
+<div class="row" style="align-items:center"><span class="label">EXPLODE</span><input class="range" id="amount" type="range" min="0" max="100" value="0" aria-label="拆解程度"><span id="pct" style="font-size:10px;color:#9eb1c2;min-width:28px;text-align:right">0%</span></div>
+<div class="sub" style="margin:9px 1px 0"><span>比例与内部布局为示意</span><span>MCU / INVERTER</span></div></section>
+<script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
+<script>
+(()=>{const host=document.querySelector('#view');if(!window.THREE){host.innerHTML='<div style="padding:30vh 24px;text-align:center;color:#dbe7f1">3D 引擎加载失败，请检查网络后刷新。</div>';return}
+const scene=new THREE.Scene();scene.background=new THREE.Color('#0c1117');scene.fog=new THREE.Fog('#0c1117',17,32);
+const camera=new THREE.PerspectiveCamera(36,innerWidth/innerHeight,.1,100);camera.position.set(8,6.4,9);
+const renderer=new THREE.WebGLRenderer({antialias:true,alpha:false});renderer.setPixelRatio(Math.min(devicePixelRatio,2));renderer.setSize(innerWidth,innerHeight);renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.25;host.appendChild(renderer.domElement);
+scene.add(new THREE.HemisphereLight(0xcde5ff,0x252c35,2.0));const key=new THREE.DirectionalLight(0xf3f7ff,3.4);key.position.set(5,10,7);key.castShadow=true;key.shadow.mapSize.set(1024,1024);scene.add(key);const rim=new THREE.DirectionalLight(0x70aee8,2.2);rim.position.set(-7,3,-5);scene.add(rim);const fill=new THREE.PointLight(0xffb978,85,18);fill.position.set(1,-3,4);scene.add(fill);
+const floor=new THREE.Mesh(new THREE.PlaneGeometry(200,200),new THREE.MeshStandardMaterial({color:'#111821',roughness:.84,metalness:.12}));floor.rotation.x=-Math.PI/2;floor.position.y=-2.35;floor.receiveShadow=true;scene.add(floor);
+const grid=new THREE.GridHelper(30,60,'#2a3b4b','#1b2835');grid.position.y=-2.34;grid.material.transparent=true;grid.material.opacity=.25;scene.add(grid);
+const root=new THREE.Group();scene.add(root);const groups={housing:new THREE.Group(),power:new THREE.Group(),pcb:new THREE.Group(),bus:new THREE.Group(),caps:new THREE.Group(),ports:new THREE.Group(),detail:new THREE.Group()};Object.values(groups).forEach(g=>root.add(g));
+const mat=(color,metalness=.4,roughness=.35)=>new THREE.MeshStandardMaterial({color,metalness,roughness});const aluminum=mat('#7c8992',.78,.29),dark=mat('#29343d',.72,.31),black=mat('#11191f',.38,.3),copper=mat('#b87842',.82,.24),gold=mat('#d8a65f',.78,.22),green=mat('#285b4a',.25,.5),chip=mat('#202a32',.45,.26),ceramic=mat('#d4d8d9',.25,.22),blue=mat('#406f9a',.5,.28);
+function mesh(g,m,pos,group,rot){let o=new THREE.Mesh(g,m);o.position.set(...pos);if(rot)o.rotation.set(...rot);o.castShadow=true;o.receiveShadow=true;group.add(o);return o}
+function box(group,dim,pos,m,bevel=.08){let geo=new THREE.BoxGeometry(...dim);return mesh(geo,m,pos,group)}
+function cyl(group,r1,r2,h,pos,m,seg=24,rot){return mesh(new THREE.CylinderGeometry(r1,r2,h,seg),m,pos,group,rot)}
+function torus(group,r,t,pos,m,rot=[Math.PI/2,0,0]){return mesh(new THREE.TorusGeometry(r,t,8,24),m,pos,group,rot)}
+// cast alloy lower pan, raised shoulders and rim
+box(groups.housing,[5.9,.52,3.75],[0,-.72,0],aluminum);
+box(groups.housing,[5.55,.22,3.42],[0,-.39,0],dark);
+box(groups.housing,[5.35,.16,3.22],[0,-.22,0],aluminum);
+box(groups.housing,[5.05,.1,2.92],[0,-.115,0],black);
+for(let x of [-2.45,2.45])for(let z of [-1.35,1.35]){box(groups.housing,[.7,.26,.72],[x,-.9,z],aluminum);cyl(groups.housing,.22,.22,.12,[x,-.73,z],dark,32);cyl(groups.detail,.105,.105,.035,[x,-.65,z],gold,24);cyl(groups.detail,.05,.05,.04,[x,-.625,z],black,6)}
+// fins on underside / sides
+for(let i=0;i<17;i++){let z=-1.52+i*.19;box(groups.housing,[4.72,.11,.075],[0,-1.08,z],dark,.02)}
+for(let x of [-2.88,2.88])for(let z of [-1.2,-.4,.4,1.2]){cyl(groups.detail,.095,.095,.09,[x,-.68,z],dark,24);cyl(groups.detail,.045,.045,.095,[x,-.63,z],gold,6)}
+// inner power substrate and power modules
+box(groups.power,[4.65,.16,2.68],[0,.05,0],ceramic);
+for(let i=0;i<6;i++){let x=-1.9+i*.76;box(groups.power,[.57,.25,1.65],[x,.28,-.08],dark);box(groups.power,[.49,.09,1.52],[x,.45,-.08],chip);for(let j=0;j<3;j++){box(groups.power,[.36,.055,.36],[x,.52,-.58+j*.48],black);box(groups.power,[.22,.018,.22],[x,.554,-.58+j*.48],gold)}}
+for(let i=0;i<8;i++){let x=-2.1+i*.6;box(groups.power,[.12,.12,.14],[x,.28,1.02],aluminum)}
+// DC link capacitors, cans, top caps, vent rings
+for(let i=0;i<5;i++){let x=-1.65+i*.82;cyl(groups.caps,.29,.31,.86,[x,.62,-1.0],ceramic,32);cyl(groups.caps,.285,.285,.08,[x,1.09,-1.0],dark,32);torus(groups.caps,.18,.025,[x,1.14,-1.0],gold);box(groups.caps,[.14,.06,.14],[x,1.15,-1.0],aluminum,.01);}
+// controller PCB elevated rear
+box(groups.pcb,[4.25,.13,.92],[0,.92,.72],green);
+box(groups.pcb,[4.05,.035,.76],[0,1.005,.72],mat('#33725b',.18,.62));
+for(let i=0;i<22;i++){let x=-1.88+(i%11)*.375,z=.43+Math.floor(i/11)*.52;box(groups.pcb,[.19,.06,.16],[x,1.06,z],chip,.015);box(groups.pcb,[.11,.025,.09],[x,1.1,z],black,.01)}
+for(let i=0;i<7;i++){let x=-1.7+i*.56;box(groups.pcb,[.3,.045,.055],[x,1.04,.2],gold,.01);box(groups.pcb,[.3,.045,.055],[x,1.04,1.2],gold,.01)}
+// folded copper busbars, parallel rails and terminal blocks
+for(let i=0;i<3;i++){let z=-.68+i*.47;box(groups.bus,[4.1,.095,.16],[0,.77,z],copper);box(groups.bus,[.17,.25,.16],[-1.95,.64,z],gold);box(groups.bus,[.17,.25,.16],[1.95,.64,z],gold);for(let x of [-1.55,-.8,0,.8,1.55])cyl(groups.bus,.055,.055,.035,[x,.83,z],dark,16)}
+// connectors on end wall: HV orange-ish sleeves and low voltage ports
+const orange=mat('#d86b28',.24,.31);
+for(let z of [-.8,.0,.8]){box(groups.ports,[.42,.44,.52],[3.02,-.48,z],dark);cyl(groups.ports,.22,.22,.3,[3.25,-.43,z],orange,32,[0,0,Math.PI/2]);cyl(groups.ports,.135,.135,.32,[3.43,-.43,z],black,24,[0,0,Math.PI/2]);torus(groups.ports,.19,.035,[3.43,-.43,z],gold,[0,Math.PI/2,0])}
+for(let i=0;i<8;i++){let z=-1.15+i*.32;box(groups.ports,[.18,.28,.2],[-3.02,-.45,z],blue,.025);box(groups.ports,[.12,.16,.12],[-3.14,-.45,z],black,.02)}
+// additional terminal brackets, seals, ribs and fasteners
+for(let x of [-2.2,-1.1,0,1.1,2.2]){box(groups.detail,[.08,.24,2.8],[x,-.04,0],dark,.02)}
+for(let x of [-2.4,-1.6,-.8,0,.8,1.6,2.4])for(let z of [-1.55,1.55]){cyl(groups.detail,.07,.07,.045,[x,-.12,z],gold,16);box(groups.detail,[.075,.012,.018],[x,-.092,z],black,.005)}
+// exploded directions stored per group
+const base={};Object.keys(groups).forEach(k=>base[k]=groups[k].position.clone());const explodeDirs={housing:new THREE.Vector3(0,-.65,0),power:new THREE.Vector3(0,.25,0),pcb:new THREE.Vector3(0,1.25,1.0),bus:new THREE.Vector3(0,1.55,-.15),caps:new THREE.Vector3(0,1.05,-.55),ports:new THREE.Vector3(1.0,0,0),detail:new THREE.Vector3(0,-.15,0)};
+let explode=0,transparent=false,active='all',target=new THREE.Vector3(0,0,0),camTarget=new THREE.Vector3(0,0,0),camPos=new THREE.Vector3(8,6.4,9);let yaw=0,pitch=0,dist=13,drag=false,lastX=0,lastY=0,pinch0=0;
+function setView(v){if(v==='top'){camPos.set(0,14,.01)}else if(v==='side'){camPos.set(14,2,0)}else if(v==='bottom'){camPos.set(0,-14,.01)}else{camPos.set(8,6.4,9)}dist=camPos.length();camPos.normalize().multiplyScalar(dist);target.set(0,0,0)}
+function ui(){document.querySelector('#pct').textContent=Math.round(explode*100)+'%';document.querySelector('#modeText').textContent=explode>.02?'分解装配':'完整装配';document.querySelector('#explode').classList.toggle('active',explode>.02);document.querySelector('#shell').classList.toggle('active',transparent)}
+document.querySelector('#explode').onclick=()=>{explode=explode>0.05?0:1;document.querySelector('#amount').value=explode*100;ui()};document.querySelector('#shell').onclick=()=>{transparent=!transparent;groups.housing.traverse(o=>{if(o.isMesh){o.material=o.material.clone();o.material.transparent=transparent;o.material.opacity=transparent?.18:1;o.material.depthWrite=!transparent}});ui()};
+document.querySelector('#amount').oninput=e=>{explode=+e.target.value/100;ui()};
+document.querySelector('#reset').onclick=()=>{setView('iso');explode=0;document.querySelector('#amount').value=0;transparent=false;groups.housing.traverse(o=>{if(o.isMesh){o.material=o.material.clone();o.material.transparent=false;o.material.opacity=1;o.material.depthWrite=true}});active='all';filterParts();ui()};
+document.querySelectorAll('[data-view]').forEach(b=>b.onclick=()=>{setView(b.dataset.view);document.querySelectorAll('[data-view]').forEach(x=>x.classList.toggle('active',x===b))});
+function filterParts(){Object.keys(groups).forEach(k=>groups[k].visible=active==='all'||(active==='housing'&&['housing','detail','ports'].includes(k))||(active==='power'&&['power','caps'].includes(k))||(active==='pcb'&&k==='pcb')||(active==='bus'&&k==='bus'));document.querySelectorAll('[data-part]').forEach(b=>b.classList.toggle('active',b.dataset.part===active))}
+document.querySelectorAll('[data-part]').forEach(b=>b.onclick=()=>{active=b.dataset.part;filterParts()});
+renderer.domElement.addEventListener('pointerdown',e=>{drag=true;lastX=e.clientX;lastY=e.clientY;renderer.domElement.setPointerCapture(e.pointerId)});renderer.domElement.addEventListener('pointermove',e=>{if(!drag)return;let dx=e.clientX-lastX,dy=e.clientY-lastY;lastX=e.clientX;lastY=e.clientY;yaw-=dx*.008;pitch=Math.max(-1.4,Math.min(1.4,pitch+dy*.006));camPos.set(Math.sin(yaw)*Math.cos(pitch)*dist,Math.sin(pitch)*dist,Math.cos(yaw)*Math.cos(pitch)*dist)});renderer.domElement.addEventListener('pointerup',()=>drag=false);renderer.domElement.addEventListener('pointercancel',()=>drag=false);renderer.domElement.addEventListener('wheel',e=>{dist=Math.max(6,Math.min(22,dist+e.deltaY*.012));camPos.normalize().multiplyScalar(dist);e.preventDefault()},{passive:false});
+let prevPinch=0;renderer.domElement.addEventListener('touchmove',e=>{if(e.touches.length===2){let d=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);if(prevPinch){dist=Math.max(6,Math.min(22,dist+(prevPinch-d)*.025));camPos.normalize().multiplyScalar(dist)}prevPinch=d}},{passive:true});renderer.domElement.addEventListener('touchend',()=>prevPinch=0);
+function resize(){camera.aspect=innerWidth/innerHeight;camera.fov=innerWidth<600?42:36;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);renderer.setPixelRatio(Math.min(devicePixelRatio,2))}addEventListener('resize',resize);
+function animate(){requestAnimationFrame(animate);Object.keys(groups).forEach(k=>{let d=explodeDirs[k];groups[k].position.set(base[k].x+d.x*explode,base[k].y+d.y*explode,base[k].z+d.z*explode)});camera.position.lerp(camPos,.12);camera.lookAt(target);renderer.render(scene,camera)}setView('iso');animate();ui();
+})();
+</script></body></html>
