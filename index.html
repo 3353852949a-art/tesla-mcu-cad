@@ -75,7 +75,7 @@ add(part(-2.42,-.12,.95,.5,.36,.32,C.dark,'connectors'));for(var i=0;i<8;i++)add
 add(part(0,1.05,0,5.52,.16,3.48,C.al,'lid'));
 add(part(0,.91,0,4.9,.025,2.9,C.rubber,'seal'));
 for(var i=0;i<5;i++)for(var j=0;j<2;j++){var x=-2.25+i*1.125,z=j?1.35:-1.35;add(part(x,1.145,z,.14,.055,.14,C.silver,'lid'));}
-var yaw=-.62,pitch=.52,dist=15.5,explode=true,wire=false,lastX=0,lastY=0,dragging=false,pointers=new Map(),pinchStart=0,pinchDist=0;
+var yaw=-.62,pitch=.52,dist=12.5,explode=true,wire=false,lastX=0,lastY=0,dragging=false,pointers=new Map(),pinchStart=0,pinchDist=0;
 function mul(a,b){var o=new Float32Array(16);for(var c=0;c<4;c++)for(var r=0;r<4;r++)o[c*4+r]=a[r]*b[c*4]+a[4+r]*b[c*4+1]+a[8+r]*b[c*4+2]+a[12+r]*b[c*4+3];return o;}
 function perspective(fovy,aspect,near,far){var f=1/Math.tan(fovy/2),nf=1/(near-far),o=new Float32Array(16);o[0]=f/aspect;o[5]=f;o[10]=(far+near)*nf;o[11]=-1;o[14]=2*far*near*nf;return o;}
 function ident(){var o=new Float32Array(16);o[0]=o[5]=o[10]=o[15]=1;return o;}
@@ -85,8 +85,8 @@ function trans(x,y,z){var o=ident();o[12]=x;o[13]=y;o[14]=z;return o;}
 function scale(x,y,z){var o=ident();o[0]=x;o[5]=y;o[10]=z;return o;}
 function normal3(m){return new Float32Array([m[0],m[1],m[2],m[4],m[5],m[6],m[8],m[9],m[10]]);}
 function resize(){var dpr=Math.min(window.devicePixelRatio||1,1.5),w=Math.max(1,Math.floor(innerWidth*dpr)),h=Math.max(1,Math.floor(innerHeight*dpr));if(canvas.width!==w||canvas.height!==h){canvas.width=w;canvas.height=h;}gl.viewport(0,0,w,h);}
-function draw(){resize();gl.enable(gl.DEPTH_TEST);gl.depthFunc(gl.LEQUAL);gl.clearColor(0,0,0,0);gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);var proj=perspective(.68,canvas.width/canvas.height,.1,100);var view=mul(trans(0,0,-dist),mul(rx(pitch),ry(yaw)));var nmat=normal3(view);gl.uniformMatrix3fv(loc.normal,false,nmat);objects.forEach(function(o){var dy=0;if(explode){if(o.g==='lid')dy=1.15;else if(o.g==='seal')dy=.72;else if(o.g==='compute')dy=.38;else if(o.g==='power')dy=.25;else if(o.g==='connectors')dy=.18;else if(o.g==='board')dy=.08;else if(o.g==='base')dy=-.3;}var model=mul(trans(o.p[0],o.p[1]+dy,o.p[2]),scale(o.s[0],o.s[1],o.s[2]));var mvp=mul(proj,mul(view,model));gl.uniformMatrix4fv(loc.mvp,false,mvp);gl.uniform3fv(loc.color,o.c);if(wire){gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER,lb);gl.drawElements(gl.LINES,lines.length,gl.UNSIGNED_SHORT,0);}else{gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER,ib);gl.drawElements(gl.TRIANGLES,tri.length,gl.UNSIGNED_SHORT,0);}});requestAnimationFrame(draw);}
-window.addEventListener('resize',resize,{passive:true});
+function draw(){resize();gl.enable(gl.DEPTH_TEST);gl.depthFunc(gl.LEQUAL);gl.clearColor(0,0,0,0);gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);var portrait=canvas.height>canvas.width;var proj=perspective(portrait?.92:.68,canvas.width/canvas.height,.1,100);var view=mul(trans(0,0,-dist),mul(rx(pitch),ry(yaw)));var nmat=normal3(view);gl.uniformMatrix3fv(loc.normal,false,nmat);objects.forEach(function(o){var dy=0;if(explode){if(o.g==='lid')dy=1.15;else if(o.g==='seal')dy=.72;else if(o.g==='compute')dy=.38;else if(o.g==='power')dy=.25;else if(o.g==='connectors')dy=.18;else if(o.g==='board')dy=.08;else if(o.g==='base')dy=-.3;}var model=mul(trans(o.p[0],o.p[1]+dy,o.p[2]),scale(o.s[0],o.s[1],o.s[2]));var mvp=mul(proj,mul(view,model));gl.uniformMatrix4fv(loc.mvp,false,mvp);gl.uniform3fv(loc.color,o.c);if(wire){gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER,lb);gl.drawElements(gl.LINES,lines.length,gl.UNSIGNED_SHORT,0);}else{gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER,ib);gl.drawElements(gl.TRIANGLES,tri.length,gl.UNSIGNED_SHORT,0);}});requestAnimationFrame(draw);}
+window.addEventListener('error',function(){fallback.classList.add('show');},{passive:true});window.addEventListener('resize',resize,{passive:true});
 function pointDist(){var a=Array.from(pointers.values());if(a.length<2)return 0;return Math.hypot(a[0].x-a[1].x,a[0].y-a[1].y);}
 canvas.addEventListener('pointerdown',function(e){canvas.setPointerCapture(e.pointerId);pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});dragging=true;lastX=e.clientX;lastY=e.clientY;if(pointers.size===2){pinchDist=pointDist();pinchStart=dist;}});
 canvas.addEventListener('pointermove',function(e){if(!pointers.has(e.pointerId))return;var old=pointers.get(e.pointerId);pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});if(pointers.size>=2){var d=pointDist();if(pinchDist>0)dist=Math.max(5.8,Math.min(17,pinchStart*pinchDist/Math.max(1,d)));}else if(dragging){yaw+=(e.clientX-lastX)*.009;pitch+=(e.clientY-lastY)*.008;pitch=Math.max(-1.05,Math.min(1.15,pitch));}lastX=e.clientX;lastY=e.clientY;});
@@ -95,7 +95,7 @@ canvas.addEventListener('pointerup',endPointer);canvas.addEventListener('pointer
 canvas.addEventListener('wheel',function(e){e.preventDefault();dist=Math.max(5.8,Math.min(17,dist+e.deltaY*.012));},{passive:false});
 document.getElementById('explode').addEventListener('click',function(){explode=!explode;this.classList.toggle('active',explode);});
 document.getElementById('wire').addEventListener('click',function(){wire=!wire;this.classList.toggle('active',wire);});
-document.getElementById('reset').addEventListener('click',function(){yaw=-.62;pitch=.52;dist=15.5;explode=true;wire=false;document.getElementById('explode').classList.add('active');document.getElementById('wire').classList.remove('active');});
+document.getElementById('reset').addEventListener('click',function(){yaw=-.62;pitch=.52;dist=12.5;explode=true;wire=false;document.getElementById('explode').classList.add('active');document.getElementById('wire').classList.remove('active');});
 gl.enable(gl.CULL_FACE);gl.cullFace(gl.BACK);gl.clearColor(0,0,0,0);draw();
 })();
 </script>
