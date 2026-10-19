@@ -11,7 +11,12 @@
 <script type="module">
 const status=document.getElementById('status');
 try{
-const THREE=await import('https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js');
+async function loadThree(url,ms){return await Promise.race([import(url),new Promise((_,reject)=>setTimeout(()=>reject(new Error('CDN timeout: '+url)),ms))]);}
+let THREE,loadErrors=[];
+for(const cdn of ['https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js','https://unpkg.com/three@0.180.0/build/three.module.js','https://cdnjs.cloudflare.com/ajax/libs/three.js/0.180.0/three.module.js']){
+ try{status.innerHTML='正在连接三维引擎…<small>尝试加载 Three.js</small>';THREE=await loadThree(cdn,9000);break;}catch(e){loadErrors.push(String(e&&e.message||e));}
+}
+if(!THREE)throw new Error('无法加载 Three.js。可能是当前网络无法访问外部 CDN。'+loadErrors.join(' | '));
 const stage=document.getElementById('stage'),scene=new THREE.Scene();scene.background=new THREE.Color(0x09121a);scene.fog=new THREE.Fog(0x09121a,18,35);
 const camera=new THREE.PerspectiveCamera(37,innerWidth/innerHeight,.1,100);
 const renderer=new THREE.WebGLRenderer({antialias:true,alpha:false,powerPreference:'low-power'});renderer.setPixelRatio(Math.min(devicePixelRatio||1,1.5));renderer.setSize(innerWidth,innerHeight);renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.2;stage.appendChild(renderer.domElement);
