@@ -1,88 +1,71 @@
 <!doctype html>
-<html lang="zh-CN">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover,user-scalable=no">
-<meta name="theme-color" content="#0a1017">
-<title>Tesla MCU · Three.js 3D</title>
+<html lang="zh-CN"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover,user-scalable=no">
+<meta name="theme-color" content="#09121a"><title>Model 3 Car Computer · Three.js</title>
 <style>
-*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#09121a;color:#dce8ed;font-family:system-ui,-apple-system,"Segoe UI",sans-serif;touch-action:none}#stage{position:absolute;inset:0}canvas{display:block;width:100%;height:100%;touch-action:none}.top{position:fixed;top:calc(14px + env(safe-area-inset-top));left:16px;z-index:2;pointer-events:none;text-shadow:0 2px 12px #000}.top strong{display:block;font-size:15px;letter-spacing:.14em;font-weight:650}.top span{display:block;margin-top:5px;font-size:11px;color:#8fa5b0;letter-spacing:.06em}.controls{position:fixed;z-index:3;left:50%;bottom:calc(18px + env(safe-area-inset-bottom));transform:translateX(-50%);display:flex;gap:10px}.controls button{height:46px;min-width:48px;padding:0 15px;border-radius:24px;border:1px solid #405766;background:#101d28ed;color:#dce8ed;font-size:13px;box-shadow:0 5px 22px #0008;touch-action:manipulation}.controls button.active{border-color:#58d9b8;color:#8ef4d9;background:#12352e}.hint{position:fixed;left:0;right:0;bottom:calc(78px + env(safe-area-inset-bottom));text-align:center;color:#9aadb7;font-size:11px;pointer-events:none;text-shadow:0 2px 8px #000}.status{position:fixed;z-index:5;inset:0;display:grid;place-content:center;text-align:center;padding:28px;background:#09121a;color:#cbd8df;font-size:14px;line-height:1.7}.status small{display:block;color:#91a7b2;margin-top:10px;max-width:290px}.status[hidden]{display:none}
-</style></head>
-<body>
-<div id="stage"></div>
-<div class="top"><strong>TESLA MCU</strong><span>MEDIA CONTROL UNIT · 3D ASSEMBLY</span></div>
-<div class="hint">单指旋转 · 双指缩放</div>
-<div class="controls"><button id="explode" class="active">拆解视图</button><button id="wire">线框</button><button id="reset">复位</button></div>
-<div class="status" id="status">正在加载三维引擎…<small>首次打开需要加载 Three.js</small></div>
+*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#09121a;color:#e3edf1;font-family:system-ui,-apple-system,"Segoe UI",sans-serif;touch-action:none}#stage{position:absolute;inset:0}canvas{display:block;width:100%;height:100%;touch-action:none}.top{position:fixed;top:calc(15px + env(safe-area-inset-top));left:16px;z-index:2;pointer-events:none;text-shadow:0 2px 10px #000}.top strong{display:block;font-size:14px;letter-spacing:.13em}.top span{display:block;margin-top:5px;color:#91a8b3;font-size:11px;letter-spacing:.04em}.controls{position:fixed;z-index:3;left:50%;bottom:calc(18px + env(safe-area-inset-bottom));transform:translateX(-50%);display:flex;gap:9px}.controls button{height:45px;padding:0 15px;border-radius:24px;border:1px solid #405866;background:#101d28ed;color:#e3edf1;font-size:13px;white-space:nowrap;touch-action:manipulation}.controls button.active{border-color:#63d7bb;color:#9bf4dc;background:#12372f}.hint{position:fixed;left:0;right:0;bottom:calc(75px + env(safe-area-inset-bottom));text-align:center;color:#9aadb7;font-size:11px;pointer-events:none;text-shadow:0 2px 8px #000}.status{position:fixed;z-index:5;inset:0;display:grid;place-content:center;text-align:center;padding:28px;background:#09121a;color:#cbd8df;font-size:14px;line-height:1.7}.status small{display:block;color:#91a7b2;margin-top:10px;max-width:300px}.status[hidden]{display:none}
+</style></head><body>
+<div id="stage"></div><div class="top"><strong>MODEL 3 · CAR COMPUTER</strong><span>THREE.JS · SERVICE-MANUAL-BASED EXTERNAL ASSEMBLY</span></div>
+<div class="hint">单指旋转 · 双指缩放</div><div class="controls"><button id="explode" class="active">拆解视图</button><button id="wire">线框</button><button id="reset">复位</button></div>
+<div class="status" id="status">正在加载 Three.js…<small>首次打开需要联网加载三维引擎</small></div>
 <script type="module">
 const status=document.getElementById('status');
-try {
- const THREE=await import('https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js');
- const stage=document.getElementById('stage');
- const scene=new THREE.Scene(); scene.background=new THREE.Color(0x09121a); scene.fog=new THREE.Fog(0x09121a,18,36);
- const camera=new THREE.PerspectiveCamera(38,innerWidth/innerHeight,.1,100); camera.position.set(8,7.2,10.5);
- const renderer=new THREE.WebGLRenderer({antialias:true,alpha:false,powerPreference:'low-power'});
- renderer.setPixelRatio(Math.min(devicePixelRatio||1,1.5)); renderer.setSize(innerWidth,innerHeight); renderer.outputColorSpace=THREE.SRGBColorSpace;
- renderer.toneMapping=THREE.ACESFilmicToneMapping; renderer.toneMappingExposure=1.18; stage.appendChild(renderer.domElement);
- scene.add(new THREE.HemisphereLight(0xcfe9ff,0x18232b,2.0));
- const key=new THREE.DirectionalLight(0xffffff,3.0);key.position.set(5,9,7);scene.add(key);
- const rim=new THREE.DirectionalLight(0x59c9c0,2.2);rim.position.set(-7,4,-5);scene.add(rim);
- const fill=new THREE.DirectionalLight(0x7194c0,1.0);fill.position.set(-5,1,6);scene.add(fill);
- const root=new THREE.Group();scene.add(root);
- const groups={base:new THREE.Group(),board:new THREE.Group(),chips:new THREE.Group(),ports:new THREE.Group(),lid:new THREE.Group()};
- Object.values(groups).forEach(g=>root.add(g));
- function mat(color,metalness=0,roughness=.5){return new THREE.MeshStandardMaterial({color,metalness,roughness});}
- const m={al:mat(0x8797a0,.78,.3),silver:mat(0xc6d1d5,.72,.24),dark:mat(0x202b33,.3,.4),black:mat(0x10171c,.15,.5),pcb:mat(0x08744b,.18,.38),green:mat(0x16895d,.15,.35),gold:mat(0xc89b4c,.72,.27),copper:mat(0xb56c39,.65,.32),chip:mat(0x263942,.35,.32),chipTop:mat(0x61747b,.62,.28),blue:mat(0x2c5268,.35,.32)};
- function box(parent,x,y,z,sx,sy,sz,material,bevel=.025){const geo=new THREE.BoxGeometry(sx,sy,sz);const mesh=new THREE.Mesh(geo,material);mesh.position.set(x,y,z);parent.add(mesh);if(bevel){const edges=new THREE.EdgesGeometry(geo);const lines=new THREE.LineSegments(edges,new THREE.LineBasicMaterial({color:0x0a141a,transparent:true,opacity:.22}));mesh.add(lines);}return mesh;}
- // Metal enclosure and lower tray
- box(groups.base,0,-.43,0,5.8,.42,3.72,m.al);
- box(groups.base,0,-.19,0,5.48,.12,3.38,m.black);
- for(let i=0;i<14;i++)box(groups.base,-2.48+i*.382,-.185,0,.055,.035,2.78,m.silver,.008);
- for(let i=0;i<8;i++)box(groups.base,-2.84,-.4,-1.3+i*.37,.12,.16,.045,m.dark,.01);
- // Main PCB and trace-like details
- box(groups.board,0,-.015,0,4.72,.13,2.82,m.pcb,.045);
- for(let i=0;i<14;i++)box(groups.board,-2.12+i*.326,.055,0,.018,.008,2.35,m.copper,.002);
- for(let i=0;i<8;i++)box(groups.board,0,.056,-1.05+i*.3,4.12,.008,.018,m.copper,.002);
- for(let i=0;i<5;i++)for(let j=0;j<2;j++)box(groups.board,-2.0+i*.98,.064,j?1.12:-1.12,.105,.014,.105,m.gold,.008);
- // Main processor stack
- box(groups.chips,0,.16,0,1.52,.22,1.32,m.dark);
- box(groups.chips,0,.29,0,1.27,.08,1.07,m.chipTop);
- box(groups.chips,0,.345,0,1.02,.045,.82,m.silver,.008);
- box(groups.chips,0,.378,0,.86,.035,.66,m.chip,.008);
- // Power ICs, inductors, capacitors and small components
- for(let i=0;i<4;i++)for(let j=0;j<2;j++){let x=-1.72+i*1.14,z=j?0.88:-.88;box(groups.chips,x,.12,z,.48,.14,.4,m.dark);box(groups.chips,x,.205,z,.38,.04,.3,m.chipTop);box(groups.chips,x,.232,z,.25,.018,.2,m.silver,.005);}
- for(let i=0;i<4;i++){let x=-1.28+i*.86;box(groups.chips,x,.17,-1.02,.42,.36,.42,m.dark);box(groups.chips,x,.36,-1.02,.35,.035,.35,m.silver);box(groups.chips,x,.382,-1.02,.12,.018,.12,m.gold,.004);}
- for(let i=0;i<10;i++){let x=-1.82+(i%5)*.9,z=i<5?-.55:.55;box(groups.chips,x,.105,z,.25,.08,.18,m.chip,.012);box(groups.chips,x,.151,z,.19,.015,.12,m.gold,.003);}
- // Side connectors
- for(let i=0;i<3;i++){let z=-.72+i*.72;box(groups.ports,2.48,-.12,z,.58,.43,.43,m.dark);box(groups.ports,2.8,-.1,z,.3,.26,.31,m.gold);for(let j=0;j<4;j++)box(groups.ports,2.98,-.1,z-.105+j*.07,.12,.055,.04,m.silver,.004);}
- box(groups.ports,-2.47,-.12,.93,.48,.34,.32,m.dark);
- for(let i=0;i<8;i++)box(groups.ports,-2.72,-.12,.69+i*.068,.12,.055,.032,m.gold,.004);
- // Lid, underside gasket and screw heads
- box(groups.lid,0,1.0,0,5.65,.17,3.58,m.al,.065);
- box(groups.lid,0,.89,0,4.98,.035,2.96,m.black,.02);
- for(let i=0;i<5;i++)for(let j=0;j<2;j++){const screw=new THREE.Mesh(new THREE.CylinderGeometry(.075,.075,.025,20),m.silver);screw.position.set(-2.2+i*1.1,1.1,j?1.35:-1.35);groups.lid.add(screw);}
- // Ground grid and soft floor
- const grid=new THREE.GridHelper(22,44,0x25404b,0x182a34);grid.position.y=-1.45;scene.add(grid);
- const floor=new THREE.Mesh(new THREE.CircleGeometry(12,64),new THREE.MeshStandardMaterial({color:0x0b151d,roughness:.9,metalness:.1}));floor.rotation.x=-Math.PI/2;floor.position.y=-1.47;scene.add(floor);
- const initial={yaw:-.42,pitch:.35,distance:14};let yaw=initial.yaw,pitch=initial.pitch,distance=initial.distance,exploded=true,wire=false;
- root.rotation.order='YXZ';
- function applyView(){root.rotation.y=yaw;root.rotation.x=pitch;camera.position.set(Math.sin(yaw)*distance,5.2+Math.sin(pitch)*2,Math.cos(yaw)*distance);camera.lookAt(0,.05,0);}
- function setExplode(on){exploded=on;groups.base.position.y=on?-.35:0;groups.board.position.y=on?.08:0;groups.chips.position.y=on?.34:0;groups.ports.position.y=on?.18:0;groups.lid.position.y=on?1.05:0;document.getElementById('explode').classList.toggle('active',on);}
- function setWire(on){wire=on;Object.values(m).forEach(material=>material.wireframe=on);document.getElementById('wire').classList.toggle('active',on);}
- let pointers=new Map(),last=null,pinchStart=0,distStart=distance;
- const el=renderer.domElement;
- el.addEventListener('pointerdown',e=>{el.setPointerCapture(e.pointerId);pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});last={x:e.clientX,y:e.clientY};if(pointers.size===2){const a=[...pointers.values()];pinchStart=Math.hypot(a[0].x-a[1].x,a[0].y-a[1].y);distStart=distance;}});
- el.addEventListener('pointermove',e=>{if(!pointers.has(e.pointerId))return;pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});if(pointers.size>=2){const a=[...pointers.values()],d=Math.hypot(a[0].x-a[1].x,a[0].y-a[1].y);if(pinchStart>0)distance=Math.max(8,Math.min(22,distStart*pinchStart/Math.max(1,d)));}else if(last){yaw+=(e.clientX-last.x)*.009;pitch=Math.max(-.65,Math.min(.85,pitch+(e.clientY-last.y)*.007));}last={x:e.clientX,y:e.clientY};applyView();});
- function end(e){pointers.delete(e.pointerId);if(pointers.size<2)pinchStart=0;last=null;}
- el.addEventListener('pointerup',end);el.addEventListener('pointercancel',end);
- el.addEventListener('wheel',e=>{distance=Math.max(8,Math.min(22,distance+e.deltaY*.012));applyView();},{passive:true});
- document.getElementById('explode').addEventListener('click',()=>setExplode(!exploded));
- document.getElementById('wire').addEventListener('click',()=>setWire(!wire));
- document.getElementById('reset').addEventListener('click',()=>{yaw=initial.yaw;pitch=initial.pitch;distance=initial.distance;setExplode(true);setWire(false);applyView();});
- function resize(){const w=innerWidth,h=innerHeight;camera.aspect=w/h;camera.fov=w<600?43:38;camera.updateProjectionMatrix();renderer.setPixelRatio(Math.min(devicePixelRatio||1,1.5));renderer.setSize(w,h);applyView();}
- window.addEventListener('resize',resize);setExplode(true);applyView();resize();status.hidden=true;
- function animate(){requestAnimationFrame(animate);renderer.render(scene,camera);}animate();
-} catch(err) {
- console.error(err);status.hidden=false;status.innerHTML='三维引擎加载失败<small>请确认网络可以访问 jsDelivr CDN，然后刷新页面。<br>错误：'+String(err&&err.message||err).replace(/[<>&]/g,'')+'</small>';
-}
+try{
+const THREE=await import('https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js');
+const stage=document.getElementById('stage'),scene=new THREE.Scene();scene.background=new THREE.Color(0x09121a);scene.fog=new THREE.Fog(0x09121a,18,35);
+const camera=new THREE.PerspectiveCamera(37,innerWidth/innerHeight,.1,100);
+const renderer=new THREE.WebGLRenderer({antialias:true,alpha:false,powerPreference:'low-power'});renderer.setPixelRatio(Math.min(devicePixelRatio||1,1.5));renderer.setSize(innerWidth,innerHeight);renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.2;stage.appendChild(renderer.domElement);
+scene.add(new THREE.HemisphereLight(0xd9edff,0x1b242b,2.0));
+const key=new THREE.DirectionalLight(0xffffff,3.2);key.position.set(5,8,8);scene.add(key);
+const rim=new THREE.DirectionalLight(0x57c7c0,2.1);rim.position.set(-7,4,-5);scene.add(rim);
+const fill=new THREE.DirectionalLight(0x7799c0,1.1);fill.position.set(-6,1,7);scene.add(fill);
+const root=new THREE.Group();scene.add(root);
+const groups={housing:new THREE.Group(),ports:new THREE.Group(),connectors:new THREE.Group(),visor:new THREE.Group(),mounts:new THREE.Group()};Object.values(groups).forEach(g=>root.add(g));
+const materials=[];
+function mat(color,metalness=0,roughness=.4){const m=new THREE.MeshStandardMaterial({color,metalness,roughness});materials.push(m);return m;}
+const m={cast:mat(0x737f86,.78,.3),edge:mat(0x9ca8ae,.82,.26),dark:mat(0x20282e,.4,.42),black:mat(0x10171c,.18,.48),plastic:mat(0x303b43,.15,.42),gold:mat(0xb99a62,.7,.3),copper:mat(0x9e6842,.68,.32),blue:mat(0x31505f,.38,.3),hose:mat(0x171e22,.08,.65),label:mat(0xc7c9c2,.12,.55)};
+function box(parent,x,y,z,sx,sy,sz,material,bevel=0){const geo=new THREE.BoxGeometry(sx,sy,sz);const mesh=new THREE.Mesh(geo,material);mesh.position.set(x,y,z);parent.add(mesh);if(bevel){const e=new THREE.EdgesGeometry(geo);mesh.add(new THREE.LineSegments(e,new THREE.LineBasicMaterial({color:0x0a1014,transparent:true,opacity:.24})));}return mesh;}
+function cyl(parent,x,y,z,r1,r2,len,material,axis='y',segments=24){const mesh=new THREE.Mesh(new THREE.CylinderGeometry(r1,r2,len,segments),material);mesh.position.set(x,y,z);if(axis==='z')mesh.rotation.x=Math.PI/2;if(axis==='x')mesh.rotation.z=Math.PI/2;parent.add(mesh);return mesh;}
+function stud(x,y,z){cyl(groups.mounts,x,y,z,.07,.07,.18,m.edge);cyl(groups.mounts,x,y+.1,z,.11,.11,.035,m.gold);}
+ // Service-manual-inspired die-cast car computer enclosure: proportions are illustrative, not factory CAD.
+box(groups.housing,0,0,0,5.15,2.1,3.1,m.cast,.075);
+box(groups.housing,0,1.075,0,4.95,.12,2.9,m.edge,.025);
+box(groups.housing,0,-1.075,0,4.85,.12,2.8,m.dark,.025);
+ // Reinforcing ribs on the cast shell
+for(let i=0;i<9;i++){let x=-2.12+i*.53;box(groups.housing,x,.05,-1.565,.075,1.65,.045,m.edge,.008);box(groups.housing,x,.05,1.565,.075,1.65,.045,m.edge,.008);}
+for(let i=0;i<5;i++){let z=-1.15+i*.575;box(groups.housing,-2.59,.02,z,.04,1.45,.07,m.dark,.008);box(groups.housing,2.59,.02,z,.04,1.45,.07,m.dark,.008);}
+ // Raised cooling manifold / paired coolant ports along lower edge
+box(groups.ports,.25,-.9,1.68,1.8,.42,.28,m.dark,.045);
+for(let i=0;i<2;i++){let x=-.28+i*1.06;cyl(groups.ports,x,-.88,1.91,.26,.26,.32,m.hose,'z',32);cyl(groups.ports,x,-.88,2.085,.205,.205,.08,m.edge,'z',32);cyl(groups.ports,x,-.88,2.135,.15,.15,.035,m.black,'z',32);for(let j=0;j<6;j++){let a=j*Math.PI/3;box(groups.ports,x+Math.cos(a)*.19,-.88+Math.sin(a)*.19,2.13,.045,.045,.04,m.edge,.004);}}
+ // Connector banks on left and right sides: counts are representative and may vary by revision.
+function connectorBank(side,count){let x=side<0?-2.68:2.68;for(let i=0;i<count;i++){let z=-1.25+(i%6)*.49,y=.55-Math.floor(i/6)*.66;const width=(i%4===0)?.36:.28,height=(i%3===0)?.31:.23;box(groups.connectors,x,y,z,width,.16,height,m.black,.025);box(groups.connectors,x+side*.1,y,z,width*.55,.12,height*.67,i%3===0?m.blue:m.plastic,.012);for(let k=0;k<3;k++)box(groups.connectors,x+side*.18,y-.035,z-height*.24+k*height*.24,.035,.055,.035,m.gold,.003);}}
+connectorBank(-1,10);connectorBank(1,7);
+ // Front connector strip, ground strap lug and harness retaining clips
+box(groups.connectors,0,.42,1.62,1.5,.42,.16,m.black,.02);
+for(let i=0;i<3;i++){let x=-.48+i*.48;box(groups.connectors,x,.43,1.73,.31,.23,.1,m.blue,.012);box(groups.connectors,x,.43,1.79,.12,.1,.04,m.edge,.005);}
+cyl(groups.connectors,-2.08,.86,1.64,.12,.12,.08,m.gold,'z');cyl(groups.connectors,-2.08,.86,1.7,.055,.055,.04,m.edge,'z');
+for(let i=0;i<2;i++){box(groups.connectors,-.45+i*.9,1.18,-.15,.2,.1,.48,m.black,.015);box(groups.connectors,-.45+i*.9,1.23,-.15,.1,.05,.25,m.edge,.008);}
+ // Six mounting studs: the manual notes four-stud and six-stud revisions.
+[[-2.15,-1.15],[-2.15,1.15],[0,-1.48],[0,1.48],[2.15,-1.15],[2.15,1.15]].forEach(p=>stud(p[0],-1.28,p[1]));
+ // Removable protective visor with four clip points, shown separated in exploded view.
+box(groups.visor,0,1.72,.12,5.25,.18,3.18,m.plastic,.065);
+box(groups.visor,0,1.83,.12,4.95,.07,2.85,m.dark,.04);
+for(let i=0;i<4;i++){let x=i<2?-2.05:2.05,z=i%2?1.25:-1.25;box(groups.visor,x,1.58,z,.22,.2,.16,m.edge,.015);box(groups.visor,x,1.46,z,.1,.12,.1,m.black,.01);}
+for(let i=0;i<6;i++)box(groups.visor,-2.1+i*.84,1.83,-1.48,.18,.04,.035,m.edge,.005);
+ // Ground plane and subtle grid
+const floor=new THREE.Mesh(new THREE.CircleGeometry(13,64),new THREE.MeshStandardMaterial({color:0x0c151c,roughness:.94,metalness:.05}));floor.rotation.x=-Math.PI/2;floor.position.y=-2.05;scene.add(floor);
+const grid=new THREE.GridHelper(22,44,0x243b45,0x172831);grid.position.y=-2.04;scene.add(grid);
+const initial={yaw:-.42,pitch:.3,distance:12.8};let yaw=initial.yaw,pitch=initial.pitch,distance=initial.distance,exploded=true,wire=false;
+function applyView(){root.rotation.order='YXZ';root.rotation.y=yaw;root.rotation.x=pitch;camera.position.set(Math.sin(yaw)*distance,4.0+Math.sin(pitch)*2,Math.cos(yaw)*distance);camera.lookAt(0,.05,0);}
+function setExplode(on){exploded=on;groups.visor.position.y=on?1.15:0;groups.ports.position.y=on?-.12:0;groups.connectors.position.x=on?0:0;groups.mounts.position.y=on?-.08:0;document.getElementById('explode').classList.toggle('active',on);}
+function setWire(on){wire=on;materials.forEach(a=>a.wireframe=on);document.getElementById('wire').classList.toggle('active',on);}
+let pointers=new Map(),last=null,pinchStart=0,distStart=distance;const el=renderer.domElement;
+el.addEventListener('pointerdown',e=>{el.setPointerCapture(e.pointerId);pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});last={x:e.clientX,y:e.clientY};if(pointers.size===2){const a=[...pointers.values()];pinchStart=Math.hypot(a[0].x-a[1].x,a[0].y-a[1].y);distStart=distance;}});
+el.addEventListener('pointermove',e=>{if(!pointers.has(e.pointerId))return;pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});if(pointers.size>=2){const a=[...pointers.values()],d=Math.hypot(a[0].x-a[1].x,a[0].y-a[1].y);if(pinchStart>0)distance=Math.max(7.5,Math.min(21,distStart*pinchStart/Math.max(1,d)));}else if(last){yaw+=(e.clientX-last.x)*.009;pitch=Math.max(-.7,Math.min(.8,pitch+(e.clientY-last.y)*.007);}last={x:e.clientX,y:e.clientY};applyView();});
+function end(e){pointers.delete(e.pointerId);if(pointers.size<2)pinchStart=0;last=null;}el.addEventListener('pointerup',end);el.addEventListener('pointercancel',end);el.addEventListener('wheel',e=>{distance=Math.max(7.5,Math.min(21,distance+e.deltaY*.012));applyView();},{passive:true});
+document.getElementById('explode').addEventListener('click',()=>setExplode(!exploded));document.getElementById('wire').addEventListener('click',()=>setWire(!wire));document.getElementById('reset').addEventListener('click',()=>{yaw=initial.yaw;pitch=initial.pitch;distance=initial.distance;setExplode(true);setWire(false);applyView();});
+function resize(){camera.aspect=innerWidth/innerHeight;camera.fov=innerWidth<600?43:37;camera.updateProjectionMatrix();renderer.setPixelRatio(Math.min(devicePixelRatio||1,1.5));renderer.setSize(innerWidth,innerHeight);applyView();}
+window.addEventListener('resize',resize);setExplode(true);applyView();resize();status.hidden=true;
+function animate(){requestAnimationFrame(animate);renderer.render(scene,camera);}animate();
+}catch(err){console.error(err);status.hidden=false;status.innerHTML='Three.js 加载失败<small>请确认网络可以访问 jsDelivr CDN，再刷新页面。<br>错误：'+String(err&&err.message||err).replace(/[<>&]/g,'')+'</small>';}
 </script></body></html>
