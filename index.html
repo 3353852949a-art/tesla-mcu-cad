@@ -39,7 +39,7 @@ const canvas=document.querySelector('#scene'), viewport=document.querySelector('
 const scene=new THREE.Scene();scene.background=null;
 const camera=new THREE.PerspectiveCamera(38,1,.1,100);camera.position.set(7.5,6.2,9);
 const renderer=new THREE.WebGLRenderer({canvas,antialias:true,alpha:true,powerPreference:'high-performance'});
-renderer.setPixelRatio(Math.min(devicePixelRatio,2));renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.18;
+renderer.setPixelRatio(Math.min(devicePixelRatio, window.matchMedia('(max-width: 760px)').matches ? 1.5 : 1.8));renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.18;
 const controls=new OrbitControls(camera,renderer.domElement);controls.enableDamping=true;controls.dampingFactor=.07;controls.target.set(0,0,0);controls.minDistance=4;controls.maxDistance=22;
 scene.add(new THREE.HemisphereLight(0xcde7ff,0x26303c,2.0));
 const key=new THREE.DirectionalLight(0xffffff,3.0);key.position.set(6,9,7);scene.add(key);
@@ -58,11 +58,23 @@ const housing=group('housing','铸铝外壳','外壳 / 概念几何','#8b9aa5');
 roundedPlate(housing,5.5,3.5,.42,.32,mats.al,.48);
 roundedPlate(housing,5.18,3.18,.08,.28,mats.dark,.23);
 for(let x of [-2.15,-1.05,.05,1.15,2.15]){box(housing,[.12,.18,2.45],mats.al,[x,.15,0]);}
+ // Perimeter flange, cast ribs and shallow mounting details.
+ for(let z of [-1.62,1.62])box(housing,[4.92,.10,.075],mats.silver,[0,.72,z]);
+ for(let x of [-2.48,2.48])box(housing,[.075,.10,2.72],mats.silver,[x,.72,0]);
+ for(let x of [-1.75,-.9,0,.9,1.75])for(let z of [-1.48,1.48]){
+  box(housing,[.34,.13,.22],mats.dark,[x,.76,z]);
+  cyl(housing,.07,.07,.055,mats.silver,[x,.84,z],[0,0,0],12);
+ }
+ for(let x of [-2.4,2.4])for(let z of [-.72,0,.72])box(housing,[.22,.12,.16],mats.dark,[x,.16,z]);
 for(let x of [-2.35,2.35])for(let z of [-1.25,1.25]){cyl(housing,.16,.16,.12,mats.dark,[x,.73,z]);cyl(housing,.075,.075,.13,mats.silver,[x,.81,z], [Math.PI/2,0,0],16)}
 // Cold plate with serpentine coolant channel
 const cooling=group('cooling','冷却底板','冷板 / 流道示意','#4b92ad');
 roundedPlate(cooling,4.8,2.85,.22,.22,mats.blue,-.02);
-for(let z of [-.85,-.28,.28,.85]){const points=[new THREE.Vector3(-1.9,.13,z),new THREE.Vector3(1.9,.13,z)];const curve=new THREE.CatmullRomCurve3(points);mesh(cooling,new THREE.TubeGeometry(curve,24,.045,8,false),mats.ceramic)}
+for(let z of [-.85,-.28,.28,.85]){
+ const points=[new THREE.Vector3(-1.9,.13,z),new THREE.Vector3(-1.2,.13,z),new THREE.Vector3(-1.05,.13,z+.12),new THREE.Vector3(1.05,.13,z+.12),new THREE.Vector3(1.2,.13,z),new THREE.Vector3(1.9,.13,z)];
+ const curve=new THREE.CatmullRomCurve3(points);mesh(cooling,new THREE.TubeGeometry(curve,32,.045,8,false),mats.ceramic);
+ }
+ for(let x=-1.8;x<=1.8;x+=.3)box(cooling,[.045,.05,2.25],mats.dark,[x,.105,0]);
 for(let x of [-2.25,2.25]){cyl(cooling,.16,.16,.36,mats.blue,[x,.05,-.75],[Math.PI/2,0,0]);cyl(cooling,.12,.12,.18,mats.silver,[x,.05,-.75],[Math.PI/2,0,0])}
 // PCB
 const pcb=group('pcb','控制电路板','PCB / 示意','#3c9b79');
@@ -81,7 +93,11 @@ const bus=group('busbars','铜排与母线','导电连接 / 示意','#d48a50');
 for(let i=0;i<3;i++){let z=-.42+i*.42;box(bus,[3.7,.1,.16],mats.copper,[0,.42,z]);for(let x of [-1.5,0,1.5])cyl(bus,.07,.07,.035,mats.gold,[x,.49,z],[0,0,0],16)}
 // connectors on one end
 const conn=group('connectors','高低压连接器','连接端子 / 示意','#d8b66f');
-for(let i=0;i<3;i++){let z=-.72+i*.72;box(conn,[.62,.5,.48],mats.black,[2.15,.08,z]);box(conn,[.42,.22,.32],mats.gold,[2.48,.1,z]);for(let k=0;k<4;k++)cyl(conn,.045,.045,.12,mats.silver,[2.7,.12,z-.12+k*.08],[0,0,Math.PI/2],12)}
+for(let i=0;i<3;i++){let z=-.72+i*.72;box(conn,[.68,.56,.52],mats.rubber,[2.12,.08,z]);
+ box(conn,[.49,.31,.38],mats.black,[2.42,.1,z]);
+ box(conn,[.31,.22,.30],mats.gold,[2.66,.1,z]);
+ for(let k=0;k<4;k++){cyl(conn,.047,.047,.13,mats.silver,[2.83,.12,z-.12+k*.08],[0,0,Math.PI/2],12);cyl(conn,.07,.07,.035,mats.dark,[2.74,.12,z-.12+k*.08],[0,0,Math.PI/2],16);}
+ for(let k=0;k<4;k++)cyl(conn,.09,.09,.055,mats.rubber,[2.98+k*.09,.12,z],[0,0,Math.PI/2],16);}
 box(conn,[.52,.35,.3],mats.dark,[-2.25,.08,1.0]);for(let k=0;k<8;k++)cyl(conn,.035,.035,.13,mats.gold,[-2.54,.1,.79+k*.06],[0,0,Math.PI/2],12);
 // cover
 const cover=group('cover','上盖与密封圈','上盖 / 密封件','#b5c0c7');
@@ -94,7 +110,24 @@ for(let x of [-2.35,-1.2,0,1.2,2.35])for(let z of [-1.35,1.35]){cyl(bolts,.095,.
 const defs=[['housing','铸铝外壳','壳体与安装法兰','#8b9aa5'],['cover','上盖与密封圈','上盖 / 密封件','#b5c0c7'],['cooling','冷却底板','冷板与流道','#4b92ad'],['pcb','控制电路板','PCB 与元件','#3c9b79'],['power','功率模块','功率器件组','#c18b50'],['capacitors','直流母线电容','电容组','#79a6d4'],['busbars','铜排与母线','导电连接','#d48a50'],['connectors','高低压连接器','接口端子','#d8b66f'],['fasteners','紧固件','螺栓与安装点','#c9d1d7']];
 const list=document.querySelector('#partlist');document.querySelector('#partCount').textContent=defs.length+' PARTS';
 defs.forEach(([id,label,sub,color])=>{const b=document.createElement('button');b.className='part';b.dataset.id=id;b.innerHTML='<i class="dot" style="background:'+color+'"></i><span>'+label+'<small>'+sub+'</small></span><span class="eye">●</span>';b.onclick=()=>selectPart(id);list.appendChild(b)});
-function selectPart(id){selected=id;document.querySelectorAll('.part').forEach(b=>b.classList.toggle('selected',b.dataset.id===id));}
+const materialState=new WeakMap();
+function selectPart(id){
+ selected=id;
+ document.querySelectorAll('.part').forEach(b=>b.classList.toggle('selected',b.dataset.id===id));
+ Object.entries(parts).forEach(([partId,g])=>g.traverse(o=>{
+  if(!o.isMesh||!o.material)return;
+  if(!materialState.has(o)) materialState.set(o,{material:o.material,emissive:o.material.emissive?o.material.emissive.clone():null,emissiveIntensity:o.material.emissiveIntensity||0});
+  const base=materialState.get(o);
+  if(base.material.emissive){
+   base.material.emissive.copy(base.emissive);
+   base.material.emissiveIntensity=base.emissiveIntensity;
+   if(partId===id){base.material.emissive.set('#5fdac6');base.material.emissiveIntensity=.42;}
+  }else if(partId===id){
+   if(!o.userData.highlightMaterial){o.userData.highlightMaterial=base.material.clone();o.userData.highlightMaterial.color.lerp(new THREE.Color('#5fdac6'),.2);}
+   o.material=o.userData.highlightMaterial;
+  }else{o.material=base.material;}
+ }));
+}
 selectPart(selected);
 const basePos={housing:[0,0,0],cover:[0,0,0],cooling:[0,0,0],pcb:[0,0,0],power:[0,0,0],capacitors:[0,0,0],busbars:[0,0,0],connectors:[0,0,0],fasteners:[0,0,0]};
 const explodeVec={housing:[0,0,0],cover:[0,2.5,0],cooling:[0,-1.5,0],pcb:[0,.15,0],power:[0,.8,0],capacitors:[0,0,-1.15],busbars:[0,1.15,0],connectors:[1.2,.15,0],fasteners:[0,1.8,0]};
@@ -111,8 +144,10 @@ document.querySelector('#isoBtn').onclick=()=>setView('iso');document.querySelec
 document.querySelector('#resetTop').onclick=()=>{setView('iso');document.querySelector('#explode').value=0;document.querySelector('#explode').dispatchEvent(new Event('input'));document.querySelector('#opacity').value=100;document.querySelector('#opacity').dispatchEvent(new Event('input'));document.querySelector('#showBtn').click()};
 const raycaster=new THREE.Raycaster(),pointer=new THREE.Vector2();
 renderer.domElement.addEventListener('pointerup',e=>{if(e.pointerType==='touch'&&e.isPrimary===false)return;const r=renderer.domElement.getBoundingClientRect();pointer.x=((e.clientX-r.left)/r.width)*2-1;pointer.y=-((e.clientY-r.top)/r.height)*2+1;raycaster.setFromCamera(pointer,camera);const hits=raycaster.intersectObjects(Object.values(parts),true);if(hits.length){let o=hits[0].object;while(o&&!o.userData.partId)o=o.parent;if(o&&o.userData.partId)selectPart(o.userData.partId)}});
-function resize(){const w=viewport.clientWidth,h=viewport.clientHeight;if(!w||!h)return;renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix()}new ResizeObserver(resize).observe(viewport);resize();
-function animate(){requestAnimationFrame(animate);controls.update();renderer.render(scene,camera)}animate();
+function resize(){const w=viewport.clientWidth,h=viewport.clientHeight;if(!w||!h)return;renderer.setPixelRatio(Math.min(devicePixelRatio,window.matchMedia('(max-width: 760px)').matches?1.5:1.8));renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix()}new ResizeObserver(resize).observe(viewport);resize();
+document.addEventListener('visibilitychange',()=>{if(document.hidden)renderer.setAnimationLoop(null);else renderer.setAnimationLoop(renderFrame)});
+function renderFrame(){controls.update();renderer.render(scene,camera)}
+renderer.setAnimationLoop(renderFrame);
 </script>
 </body>
 </html>
