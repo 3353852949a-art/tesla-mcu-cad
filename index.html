@@ -116,16 +116,19 @@ function selectPart(id){
  document.querySelectorAll('.part').forEach(b=>b.classList.toggle('selected',b.dataset.id===id));
  Object.entries(parts).forEach(([partId,g])=>g.traverse(o=>{
   if(!o.isMesh||!o.material)return;
-  if(!materialState.has(o)) materialState.set(o,{material:o.material,emissive:o.material.emissive?o.material.emissive.clone():null,emissiveIntensity:o.material.emissiveIntensity||0});
+  if(!materialState.has(o)){
+   const source=Array.isArray(o.material)?o.material:o.material;
+   const own=Array.isArray(source)?source.map(m=>m.clone()):source.clone();
+   o.material=own;
+   materialState.set(o,{material:own,emissive:Array.isArray(own)?null:(own.emissive?own.emissive.clone():null),emissiveIntensity:Array.isArray(own)?0:(own.emissiveIntensity||0)});
+  }
   const base=materialState.get(o);
-  if(base.material.emissive){
-   base.material.emissive.copy(base.emissive);
-   base.material.emissiveIntensity=base.emissiveIntensity;
-   if(partId===id){base.material.emissive.set('#5fdac6');base.material.emissiveIntensity=.42;}
-  }else if(partId===id){
-   if(!o.userData.highlightMaterial){o.userData.highlightMaterial=base.material.clone();o.userData.highlightMaterial.color.lerp(new THREE.Color('#5fdac6'),.2);}
-   o.material=o.userData.highlightMaterial;
-  }else{o.material=base.material;}
+  const mats=Array.isArray(base.material)?base.material:[base.material];
+  if(partId===id){
+   mats.forEach(m=>{if(m.emissive){m.emissive.set('#5fdac6');m.emissiveIntensity=.42;}else if(m.color)m.color.lerp(new THREE.Color('#5fdac6'),.2);});
+  }else{
+   mats.forEach((m,i)=>{if(m.emissive&&base.emissive){m.emissive.copy(base.emissive);m.emissiveIntensity=base.emissiveIntensity;}});
+  }
  }));
 }
 selectPart(selected);
