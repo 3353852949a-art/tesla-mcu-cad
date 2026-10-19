@@ -30,7 +30,17 @@
 <div class="panel"><h2>EXPLODED VIEW / 拆解控制</h2><div class="rowline"><label for="explode">爆炸距离</label><output id="explodeVal">68%</output></div><input id="explode" type="range" min="0" max="100" value="68"><div class="rowline"><label for="rotate">自动旋转</label><output id="rotateVal">关闭</output></div><input id="rotate" type="range" min="0" max="1" step="1" value="0"><div class="actions"><button id="showAll">显示全部</button><button id="hideSelected">隐藏选中</button><button id="focusSelected" class="primary">聚焦部件</button></div><div class="note">此为通用汽车 MCU 概念装配模型，不代表特定年份 Tesla 原厂测绘数据。尺寸、元件布局与接口需用实物照片或测量数据校准。</div></div>
 </section></div>
 <script type="module">
-import * as THREE from 'three';
+async function boot(){
+let THREE;
+try {
+  THREE = await import('https://unpkg.com/three@0.160.0/build/three.module.js');
+} catch (firstError) {
+  try {
+    THREE = await import('https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js');
+  } catch (secondError) {
+    throw new Error('无法下载 3D 引擎。请检查手机网络/VPN后重试。');
+  }
+}
 const $=id=>document.getElementById(id);
 const stage=$('stage');
 const scene=new THREE.Scene(); scene.background=null;
@@ -155,5 +165,16 @@ const clock=new THREE.Clock();
 function animate(){requestAnimationFrame(animate);const dt=Math.min(clock.getDelta(),.05);if(autoRotate&&!drag){yaw+=dt*.18;updateCamera();}renderer.render(scene,camera);}
 animate();
 $('loading').classList.add('hide');$('status').textContent='三维模型就绪 · 拖动旋转 / 双指缩放';
+}
+boot().catch(error => {
+  console.error('MCU 3D startup failed:', error);
+  const loading = document.getElementById('loading');
+  const status = document.getElementById('status');
+  if (loading) {
+    loading.classList.remove('hide');
+    loading.innerHTML = '<span style="display:block;max-width:90vw;line-height:1.6">3D 模型启动失败<br><small>可能是手机浏览器的 WebGL 或网络 CDN 被拦截。</small><br><button onclick="location.reload()" style="margin-top:12px">重新加载</button></span>';
+  }
+  if (status) status.textContent = '启动失败：' + (error && error.message ? error.message : '未知错误');
+});
 </script>
 </body></html>
