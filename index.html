@@ -29,6 +29,16 @@
 </div></div>
 <div class="panel"><h2>EXPLODED VIEW / 拆解控制</h2><div class="rowline"><label for="explode">爆炸距离</label><output id="explodeVal">68%</output></div><input id="explode" type="range" min="0" max="100" value="68"><div class="rowline"><label for="rotate">自动旋转</label><output id="rotateVal">关闭</output></div><input id="rotate" type="range" min="0" max="1" step="1" value="0"><div class="actions"><button id="showAll">显示全部</button><button id="hideSelected">隐藏选中</button><button id="focusSelected" class="primary">聚焦部件</button></div><div class="note">此为通用汽车 MCU 概念装配模型，不代表特定年份 Tesla 原厂测绘数据。尺寸、元件布局与接口需用实物照片或测量数据校准。</div></div>
 </section></div>
+<script>
+/* Runs even if the module script or its CDN import never starts. */
+window.setTimeout(function(){
+  var loading=document.getElementById('loading');
+  if(loading && !loading.classList.contains('hide')){
+    loading.innerHTML='<span style="display:block;max-width:90vw;line-height:1.7">三维引擎加载超时<br><small>网页代码未能成功启动。请点下方重试；若仍失败，可能是当前网络拦截了 3D 引擎 CDN。</small><br><button onclick="location.reload()" style="margin-top:12px;padding:10px 18px;border:1px solid #6ee7cf;border-radius:10px;background:#17302f;color:#eaf8f5">重新加载</button></span>';
+    var status=document.getElementById('status'); if(status) status.textContent='启动超时 · 等待引擎失败';
+  }
+},12000);
+</script>
 <script type="module">
 async function boot(){
 let THREE;
