@@ -10,13 +10,26 @@
 *{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:var(--bg);color:var(--text);font:14px/1.4 system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}button,input{font:inherit}button{color:var(--text);background:#17232e;border:1px solid #344656;border-radius:10px;padding:9px 12px;cursor:pointer}button:active{transform:translateY(1px)}button.primary{background:#17473f;border-color:#347c6d;color:#baf9e8}.app{height:100dvh;display:grid;grid-template-rows:auto minmax(0,1fr) auto}.top{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 14px;background:#0d151e;border-bottom:1px solid var(--line);z-index:2}.brand{display:flex;align-items:center;gap:10px;min-width:0}.mark{width:34px;height:34px;display:grid;place-items:center;border:1px solid #3d8979;color:var(--mint);border-radius:10px;font-weight:900}.brand strong{display:block;font-size:12px;letter-spacing:.08em}.brand small{display:block;color:var(--muted);font-size:10px}.pill{white-space:nowrap;font-size:10px;border:1px solid #334656;color:#b4c3ce;border-radius:99px;padding:5px 8px}.stage{position:relative;min-height:0;overflow:hidden;background:radial-gradient(ellipse at 48% 40%,#263947 0,#121e29 48%,#080d13 100%)}canvas{display:block;width:100%;height:100%;touch-action:none;outline:none}.hud{position:absolute;left:12px;top:12px;max-width:calc(100% - 24px);display:flex;flex-direction:column;gap:6px;pointer-events:none}.hud .eyebrow{color:var(--mint);font-size:9px;letter-spacing:.2em}.hud .heading{font-size:18px;font-weight:750;letter-spacing:-.03em;text-shadow:0 2px 12px #000}.hud .sub{font-size:10px;color:#b2c2cd}.tools{position:absolute;top:12px;right:12px;display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;max-width:58%}.tools button{padding:8px 10px;font-size:11px;background:#101a24dd;backdrop-filter:blur(8px)}.tools button.active{border-color:#58cbb0;color:#9cf4dc}.bottom{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px;padding:10px 12px calc(10px + env(safe-area-inset-bottom));background:#0d151e;border-top:1px solid var(--line);max-height:39dvh;overflow:auto}.panel{min-width:0;background:#111b25;border:1px solid #2a3a49;border-radius:13px;padding:11px}.panel h2{font-size:10px;letter-spacing:.14em;color:#a6bac8;margin:0 0 9px}.part-list{display:grid;grid-template-columns:1fr 1fr;gap:6px}.part{padding:8px 7px;text-align:left;font-size:10px;min-width:0;display:flex;align-items:center;gap:7px}.part .dot{width:7px;height:7px;border-radius:50%;flex:0 0 auto}.part.selected{border-color:#62d7bd;background:#17362f}.rowline{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:9px 0 5px;font-size:11px}.rowline output{color:var(--mint);font-variant-numeric:tabular-nums}input[type=range]{width:100%;accent-color:#6ee7c8}.actions{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}.actions button{font-size:10px;flex:1}.note{font-size:9px;color:#8297a8;margin-top:9px;line-height:1.45}.status{position:absolute;left:12px;bottom:12px;padding:6px 8px;border-radius:8px;background:#0b121bd9;border:1px solid #2c3d4a;color:#9eb1bf;font-size:9px;pointer-events:none}.loading{position:absolute;inset:0;display:grid;place-items:center;color:#b9d1d9;background:#0c141de8;z-index:5}.loading span{border:1px solid #355365;border-radius:12px;padding:14px 18px;background:#101d28}.hide{display:none!important}
 @media(min-width:760px){.app{grid-template-rows:auto minmax(0,1fr)}.bottom{position:absolute;right:14px;top:76px;bottom:14px;width:310px;max-height:none;grid-template-columns:1fr;grid-template-rows:auto auto;align-content:start;background:#0c141de8;border:1px solid var(--line);border-radius:15px;z-index:1;backdrop-filter:blur(12px)}.stage{grid-row:2}.tools{right:340px}.hud .heading{font-size:24px}.part-list{grid-template-columns:1fr 1fr}}
 @media(max-width:420px){.top{padding:8px 10px}.pill{font-size:9px}.bottom{gap:7px;padding:8px 8px calc(8px + env(safe-area-inset-bottom))}.panel{padding:9px}.part-list{grid-template-columns:1fr}.part{padding:7px}.hud .heading{font-size:16px}.tools{top:auto;bottom:10px;max-width:70%}.status{bottom:auto;top:94px}}
+
+/* Minimal, model-first presentation: keep the MCU as the only focal point. */
+html,body{overscroll-behavior:none}
+.app{display:block;height:100dvh}
+.top,.bottom,.hud,.status{display:none!important}
+.stage{position:fixed;inset:0;width:100vw;height:100dvh;min-height:0;overflow:hidden}
+.tools{position:fixed;z-index:8;left:50%;right:auto;top:auto;bottom:calc(18px + env(safe-area-inset-bottom));transform:translateX(-50%);max-width:calc(100vw - 20px);flex-wrap:nowrap;gap:10px;justify-content:center}
+.tools button{width:48px;height:48px;min-width:48px;padding:0;border-radius:50%;font-size:22px;line-height:1;background:#101a24e8;border:1px solid #526674;box-shadow:0 6px 24px #0007;backdrop-filter:blur(12px)}
+.tools button.active{border-color:#6ee7c8;color:#8ef4d9;background:#15372f}
+.loading{background:radial-gradient(ellipse at center,#263947 0,#121e29 48%,#080d13 100%)}
+.loading span{width:34px;height:34px;padding:0;border:3px solid #355365;border-top-color:#6ee7c8;border-radius:50%;background:transparent;font-size:0;animation:mcuSpin .85s linear infinite}
+@keyframes mcuSpin{to{transform:rotate(360deg)}}
+@media(max-width:420px){.tools{bottom:calc(14px + env(safe-area-inset-bottom));gap:9px}.tools button{width:44px;height:44px;min-width:44px;font-size:20px}}
 </style>
 <script type="importmap">{"imports":{"three":"https://unpkg.com/three@0.160.0/build/three.module.js"}}</script>
 </head>
 <body>
 <div class="app">
 <header class="top"><div class="brand"><div class="mark">M3</div><div><strong>MCU / HARDWARE LAB</strong><small>Interactive exploded assembly · concept model</small></div></div><span class="pill">GENERIC MCU · V1</span></header>
-<main class="stage" id="stage"><div class="loading" id="loading"><span>正在构建三维装配模型…</span></div><div class="hud"><div class="eyebrow">MODEL 3 · MEDIA CONTROL UNIT</div><div class="heading">MCU 内部结构探索</div><div class="sub">拖动旋转 · 双指缩放 · 点选部件 · 展开装配</div></div><div class="tools"><button id="explodeQuick" class="active">爆炸视图</button><button id="wireBtn">线框</button><button id="resetBtn">复位视角</button></div><div class="status" id="status">初始化渲染器…</div></main>
+<main class="stage" id="stage"><div class="loading" id="loading"><span aria-label="Loading"></span></div><div class="hud"><div class="eyebrow">MODEL 3 · MEDIA CONTROL UNIT</div><div class="heading">MCU 内部结构探索</div><div class="sub">拖动旋转 · 双指缩放 · 点选部件 · 展开装配</div></div><div class="tools"><button id="explodeQuick" class="active" aria-label="Explode" title="Explode">⤢</button><button id="wireBtn" aria-label="Wireframe" title="Wireframe">▦</button><button id="resetBtn" aria-label="Reset view" title="Reset view">↺</button></div><div class="status" id="status">初始化渲染器…</div></main>
 <section class="bottom">
 <div class="panel"><h2>ASSEMBLY COMPONENTS / 部件</h2><div class="part-list" id="partList">
 <button class="part selected" data-part="lid"><span class="dot" style="background:#bdc9d1"></span>金属上盖</button>
@@ -34,7 +47,7 @@
 window.setTimeout(function(){
   var loading=document.getElementById('loading');
   if(loading && !loading.classList.contains('hide')){
-    loading.innerHTML='<span style="display:block;max-width:90vw;line-height:1.7">三维引擎加载超时<br><small>网页代码未能成功启动。请点下方重试；若仍失败，可能是当前网络拦截了 3D 引擎 CDN。</small><br><button onclick="location.reload()" style="margin-top:12px;padding:10px 18px;border:1px solid #6ee7cf;border-radius:10px;background:#17302f;color:#eaf8f5">重新加载</button></span>';
+    loading.innerHTML='<button aria-label="Reload" title="Reload" onclick="location.reload()" style="width:48px;height:48px;border:1px solid #6ee7cf;border-radius:50%;background:#17302f;color:#eaf8f5;font-size:24px">↻</button>';
     var status=document.getElementById('status'); if(status) status.textContent='启动超时 · 等待引擎失败';
   }
 },12000);
@@ -56,7 +69,7 @@ const stage=$('stage');
 const scene=new THREE.Scene(); scene.background=null;
 const camera=new THREE.PerspectiveCamera(38,1,.1,100);camera.position.set(8,7.5,10.5);
 const renderer=new THREE.WebGLRenderer({antialias:true,alpha:true,powerPreference:'high-performance'});
-renderer.setPixelRatio(Math.min(devicePixelRatio||1,2));renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.15;stage.prepend(renderer.domElement);
+renderer.setPixelRatio(Math.min(devicePixelRatio||1,window.matchMedia('(max-width: 760px)').matches?1.35:1.8));renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.15;stage.prepend(renderer.domElement);
 scene.add(new THREE.HemisphereLight(0xc8e5ff,0x18232a,2.0));
 const key=new THREE.DirectionalLight(0xfff0d7,3.1);key.position.set(5,9,7);key.castShadow=true;key.shadow.mapSize.set(1024,1024);scene.add(key);
 const fill=new THREE.DirectionalLight(0x78cbbd,1.5);fill.position.set(-7,3,-4);scene.add(fill);
@@ -97,6 +110,18 @@ for(let x of [-2.55,2.55])box(base,[.08,.11,2.85],mats.bright,[x,-.045,0]);
 for(let x of [-2.52,2.52])for(let z of [-1.48,1.48]){box(base,[.48,.18,.42],mats.al,[x,-.22,z],.05);cyl(base,.14,.14,.12,mats.darkmetal,[x,-.105,z],24);cyl(base,.075,.075,.14,mats.bright,[x,-.085,z],20);}
 for(let x of [-1.7,-.85,0,.85,1.7]){box(base,[.06,.3,1.5],mats.darkmetal,[x,-.47,0]);}
 for(let x of [-2.3,-1.55,-.8,0,.8,1.55,2.3])for(let z of [-1.7,1.7])screw(base,x,-.025,z,.75);
+// Additional cast ribs and shallow machining details
+for(let x of [-2.35,-1.95,1.95,2.35]){
+  box(base,[.055,.19,2.35],mats.bright,[x,-.39,0]);
+}
+for(let z of [-1.22,-.82,.82,1.22]){
+  box(base,[4.15,.07,.045],mats.darkmetal,[0,-.12,z]);
+}
+for(let x of [-2.35,-1.55,-.75,.75,1.55,2.35]){
+  for(let z of [-1.72,1.72]){
+    cyl(base,.055,.055,.035,mats.black,[x,.025,z],16);
+  }
+}
 // gasket ring
 const gasket=groups.gasket;const gasketMat=mats.gasket;
 function ringRect(parent,w,d,t,y,material){box(parent,[w,t,.045],material,[0,y,-d/2]);box(parent,[w,t,.045],material,[0,y,d/2]);box(parent,[.045,t,d],material,[-w/2,y,0]);box(parent,[.045,t,d],material,[w/2,y,0]);}
@@ -153,7 +178,7 @@ const raycaster=new THREE.Raycaster(),pointer=new THREE.Vector2();let selected='
 function select(id){if(!groups[id])return;selected=id;document.querySelectorAll('.part').forEach(b=>b.classList.toggle('selected',b.dataset.part===id));$('status').textContent=partMeta[id].label+' · 已选中';}
 function updateExplode(){explosion=Number($('explode').value)/100;$('explodeVal').textContent=Math.round(explosion*100)+'%';for(const id in groups){const v=partMeta[id].explode;groups[id].position.set(v[0]*explosion,v[1]*explosion,v[2]*explosion);}}
 function setWire(){wire=!wire;for(const g of Object.values(groups))g.traverse(o=>{if(o.isMesh&&o.material&&!o.userData.noPick){if(Array.isArray(o.material))o.material.forEach(m=>m.wireframe=wire);else o.material.wireframe=wire;}});$('wireBtn').classList.toggle('active',wire);}
-function resize(){const w=stage.clientWidth,h=stage.clientHeight;renderer.setSize(w,h,false);camera.aspect=w/Math.max(1,h);camera.updateProjectionMatrix();}
+function resize(){const w=stage.clientWidth,h=stage.clientHeight;renderer.setPixelRatio(Math.min(devicePixelRatio||1,window.matchMedia('(max-width: 760px)').matches?1.35:1.8));renderer.setSize(w,h,false);camera.aspect=w/Math.max(1,h);camera.updateProjectionMatrix();}
 window.addEventListener('resize',resize);resize();
 renderer.domElement.addEventListener('pointerdown',e=>{drag={x:e.clientX,y:e.clientY,moved:false,id:e.pointerId};last.x=e.clientX;last.y=e.clientY;renderer.domElement.setPointerCapture(e.pointerId);});
 renderer.domElement.addEventListener('pointermove',e=>{if(!drag)return;const dx=e.clientX-last.x,dy=e.clientY-last.y;if(Math.abs(e.clientX-drag.x)+Math.abs(e.clientY-drag.y)>4)drag.moved=true;if(e.pointerType==='touch'||e.buttons){yaw-=dx*.008;pitch+=dy*.008;updateCamera();}last.x=e.clientX;last.y=e.clientY;});
@@ -182,7 +207,7 @@ boot().catch(error => {
   const status = document.getElementById('status');
   if (loading) {
     loading.classList.remove('hide');
-    loading.innerHTML = '<span style="display:block;max-width:90vw;line-height:1.6">3D 模型启动失败<br><small>可能是手机浏览器的 WebGL 或网络 CDN 被拦截。</small><br><button onclick="location.reload()" style="margin-top:12px">重新加载</button></span>';
+    loading.innerHTML = '<button aria-label="Reload" title="Reload" onclick="location.reload()" style="width:48px;height:48px;border:1px solid #6ee7cf;border-radius:50%;background:#17302f;color:#eaf8f5;font-size:24px">↻</button>';
   }
   if (status) status.textContent = '启动失败：' + (error && error.message ? error.message : '未知错误');
 });
