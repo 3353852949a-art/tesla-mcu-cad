@@ -3,101 +3,66 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover,user-scalable=no">
-<meta name="theme-color" content="#080d13">
+<meta name="theme-color" content="#0a1017">
 <title>MCU 3D</title>
 <style>
-*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#080d13;overscroll-behavior:none}body{background:radial-gradient(ellipse at 50% 38%,#253947 0,#121e29 48%,#080d13 100%);touch-action:none}canvas{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:none;outline:none}.controls{position:fixed;z-index:2;left:50%;bottom:calc(16px + env(safe-area-inset-bottom));transform:translateX(-50%);display:flex;gap:10px}.controls button{width:46px;height:46px;border-radius:50%;border:1px solid #536b78;background:#101a24e8;color:#dce9ee;font:22px/1 system-ui,sans-serif;box-shadow:0 6px 24px #0007;backdrop-filter:blur(12px);-webkit-tap-highlight-color:transparent}.controls button:active{transform:scale(.94)}.controls button.active{border-color:#6ee7c8;color:#8ef4d9;background:#15372f}.fallback{position:fixed;inset:0;display:none;place-items:center;color:#c6d5dc;font:14px system-ui,sans-serif;text-align:center;padding:28px;background:#0b1118}.fallback.show{display:grid}.fallback div{max-width:280px;line-height:1.7}
-</style>
-</head>
+*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#0a1017;color:#e8f1f5;font-family:system-ui,sans-serif;touch-action:none}
+body{background:radial-gradient(ellipse at 50% 40%,#253946 0,#121e28 48%,#080d13 100%)}
+.stage{position:absolute;inset:0;perspective:1000px;overflow:hidden;touch-action:none}
+.world{position:absolute;left:50%;top:45%;width:0;height:0;transform-style:preserve-3d;transform:rotateX(-26deg) rotateY(-34deg) scale(.82);will-change:transform}
+.part{position:absolute;left:0;top:0;transform-style:preserve-3d;will-change:transform}
+.face{position:absolute;backface-visibility:hidden;border:1px solid #0003;box-shadow:inset 0 0 0 1px #ffffff08}
+.front,.back{left:0;top:0;width:var(--w);height:var(--h)}
+.front{transform:translateZ(calc(var(--d)/2))}
+.back{transform:rotateY(180deg) translateZ(calc(var(--d)/2));filter:brightness(.68)}
+.right,.left{left:0;top:0;width:var(--d);height:var(--h)}
+.right{left:calc((var(--w) - var(--d))/2);transform:rotateY(90deg) translateZ(calc(var(--w)/2));filter:brightness(.78)}
+.left{left:calc((var(--w) - var(--d))/2);transform:rotateY(-90deg) translateZ(calc(var(--w)/2));filter:brightness(.62)}
+.top,.bottom{left:0;top:calc((var(--h) - var(--d))/2);width:var(--w);height:var(--d)}
+.top{transform:rotateX(90deg) translateZ(calc(var(--h)/2));filter:brightness(1.12)}
+.bottom{transform:rotateX(-90deg) translateZ(calc(var(--h)/2));filter:brightness(.55)}
+.wire .face{background:transparent!important;border:1px solid #a7ffe0!important;box-shadow:none}
+.controls{position:fixed;z-index:3;left:50%;bottom:calc(20px + env(safe-area-inset-bottom));transform:translateX(-50%);display:flex;gap:12px}
+button{width:48px;height:48px;border-radius:50%;border:1px solid #536b78;background:#101a24e8;color:#dce9ee;font:22px/1 system-ui,sans-serif;box-shadow:0 6px 24px #0007;touch-action:manipulation}
+button.active{border-color:#6ee7c8;color:#8ef4d9;background:#15372f}
+.hint{position:fixed;top:calc(14px + env(safe-area-inset-top));left:0;right:0;text-align:center;color:#c7d7df88;font-size:12px;pointer-events:none}
+</style></head>
 <body>
-<canvas id="view" aria-label="Interactive 3D MCU model"></canvas>
-<div class="fallback" id="fallback"><div>此设备或浏览器未能启动 3D 图形。请尝试使用最新版 Chrome 打开。</div></div>
-<div class="controls" aria-label="Model controls">
-<button id="explode" class="active" aria-label="Exploded view" title="Exploded view">⤢</button>
-<button id="wire" aria-label="Wireframe" title="Wireframe">▦</button>
-<button id="reset" aria-label="Reset view" title="Reset view">↺</button>
-</div>
+<div class="stage" id="stage"><div class="world" id="world"></div></div>
+<div class="hint">拖动旋转 · 双指缩放</div>
+<div class="controls"><button id="explode" class="active" aria-label="爆炸视图">⤢</button><button id="wire" aria-label="线框">▦</button><button id="reset" aria-label="复位">↺</button></div>
 <script>
 (function(){
 'use strict';
-var canvas=document.getElementById('view'),fallback=document.getElementById('fallback');
-var gl=canvas.getContext('webgl',{antialias:true,alpha:true,powerPreference:'high-performance'})||canvas.getContext('experimental-webgl');
-if(!gl){fallback.classList.add('show');return;}
-var vs='attribute vec3 aPosition; attribute vec3 aNormal; uniform mat4 uMVP; uniform mat3 uNormal; varying vec3 vNormal; varying vec3 vPosition; void main(){vNormal=normalize(uNormal*aNormal);vPosition=aPosition;gl_Position=uMVP*vec4(aPosition,1.0);}';
-var fs='precision mediump float; uniform vec3 uColor; varying vec3 vNormal; void main(){vec3 n=normalize(vNormal);vec3 l1=normalize(vec3(-0.45,0.85,0.55));vec3 l2=normalize(vec3(0.65,0.2,-0.6));float light=0.32+0.66*max(dot(n,l1),0.0)+0.24*max(dot(n,l2),0.0);vec3 col=uColor*light;gl_FragColor=vec4(col,1.0);}';
-function shader(type,src){var s=gl.createShader(type);gl.shaderSource(s,src);gl.compileShader(s);if(!gl.getShaderParameter(s,gl.COMPILE_STATUS)){fallback.classList.add('show');throw new Error(gl.getShaderInfoLog(s));}return s;}
-var program=gl.createProgram();gl.attachShader(program,shader(gl.VERTEX_SHADER,vs));gl.attachShader(program,shader(gl.FRAGMENT_SHADER,fs));gl.linkProgram(program);if(!gl.getProgramParameter(program,gl.LINK_STATUS)){fallback.classList.add('show');return;}gl.useProgram(program);
-var loc={p:gl.getAttribLocation(program,'aPosition'),n:gl.getAttribLocation(program,'aNormal'),mvp:gl.getUniformLocation(program,'uMVP'),normal:gl.getUniformLocation(program,'uNormal'),color:gl.getUniformLocation(program,'uColor')};
-var verts=[],norms=[],tri=[],lines=[];
-var faces=[
-{n:[1,0,0],v:[[.5,-.5,-.5],[.5,.5,-.5],[.5,.5,.5],[.5,-.5,.5]]},
-{n:[-1,0,0],v:[[-.5,-.5,.5],[-.5,.5,.5],[-.5,.5,-.5],[-.5,-.5,-.5]]},
-{n:[0,1,0],v:[[-.5,.5,-.5],[-.5,.5,.5],[.5,.5,.5],[.5,.5,-.5]]},
-{n:[0,-1,0],v:[[-.5,-.5,.5],[-.5,-.5,-.5],[.5,-.5,-.5],[.5,-.5,.5]]},
-{n:[0,0,1],v:[[.5,-.5,.5],[.5,.5,.5],[-.5,.5,.5],[-.5,-.5,.5]]},
-{n:[0,0,-1],v:[[-.5,-.5,-.5],[-.5,.5,-.5],[.5,.5,-.5],[.5,-.5,-.5]]}
-];
-faces.forEach(function(f){var b=verts.length/3;f.v.forEach(function(v){verts.push(v[0],v[1],v[2]);norms.push(f.n[0],f.n[1],f.n[2]);});tri.push(b,b+1,b+2,b,b+2,b+3);lines.push(b,b+1,b+1,b+2,b+2,b+3,b+3,b);});
-var vb=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,vb);gl.bufferData(gl.ARRAY_BUFFER,new Float32Array(verts),gl.STATIC_DRAW);
-gl.enableVertexAttribArray(loc.p);gl.vertexAttribPointer(loc.p,3,gl.FLOAT,false,0,0);
-var nb=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,nb);gl.bufferData(gl.ARRAY_BUFFER,new Float32Array(norms),gl.STATIC_DRAW);
-gl.enableVertexAttribArray(loc.n);gl.vertexAttribPointer(loc.n,3,gl.FLOAT,false,0,0);
-var ib=gl.createBuffer();gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER,ib);gl.bufferData(gl.ELEMENT_ARRAY_BUFFER,new Uint16Array(tri),gl.STATIC_DRAW);
-var lb=gl.createBuffer();gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER,lb);gl.bufferData(gl.ELEMENT_ARRAY_BUFFER,new Uint16Array(lines),gl.STATIC_DRAW);
-function part(x,y,z,sx,sy,sz,color,group){return {p:[x,y,z],s:[sx,sy,sz],c:color,g:group||'fixed'};}
-var objects=[];
-function add(o){objects.push(o);return o;}
-var C={al:[.58,.66,.71],silver:[.78,.83,.86],dark:[.12,.17,.21],rubber:[.07,.09,.11],pcb:[.06,.39,.27],green:[.1,.47,.33],gold:[.77,.57,.27],copper:[.65,.31,.16],chip:[.15,.2,.24],chipTop:[.35,.42,.46],ceramic:[.78,.78,.71],blue:[.18,.31,.4],red:[.5,.17,.14]};
-add(part(0,-.42,0,5.7,.38,3.65,C.al,'base'));
-add(part(0,-.22,0,5.35,.12,3.3,C.dark,'base'));
-/* machined channels and perimeter ribs */
-for(var i=0;i<13;i++){var x=-2.45+i*.408;add(part(x,-.19,0,.075,.035,2.85,C.silver,'base'));}
-for(var i=0;i<8;i++){var z=-1.35+i*.385;add(part(-2.84,-.39,z,.12,.17,.045,C.dark,'base'));}
-/* PCB, traces, mounting holes */
-add(part(0,-.015,0,4.55,.12,2.55,C.pcb,'board'));
-for(var i=0;i<13;i++)add(part(-1.95+i*.325,.052,0,.026,.009,1.95,C.copper,'board'));
-for(var i=0;i<7;i++)add(part(0,.055,-.9+i*.3,3.8,.009,.022,C.copper,'board'));
-for(var i=0;i<4;i++)for(var j=0;j<2;j++)add(part(-2.05+i*1.36,.061,-1.05+j*2.1,.12,.015,.12,C.gold,'board'));
-/* central compute module and shield */
-add(part(0,.16,0,1.5,.22,1.28,C.dark,'compute'));
-add(part(0,.29,0,1.23,.09,1.02,C.chip,'compute'));
-add(part(0,.345,0,.98,.045,.79,C.silver,'compute'));
-add(part(0,.375,0,.82,.035,.63,C.chip,'compute'));
-/* power stages, driver ICs and heat spreaders */
-for(var i=0;i<6;i++){var x=-1.55+(i%3)*1.55,z=i<3?-.7:.7;add(part(x,.14,z,.72,.25,.58,C.dark,'power'));add(part(x,.29,z,.56,.06,.43,C.chipTop,'power'));for(var k=0;k<4;k++)add(part(x-.19+k*.125,.335,z,.065,.025,.34,C.silver,'power'));}
-for(var i=0;i<4;i++){var x=-1.35+i*.9;add(part(x,.18,-1.03,.46,.42,.46,C.dark,'power'));add(part(x,.405,-1.03,.39,.035,.39,C.silver,'power'));add(part(x,.428,-1.03,.13,.02,.13,C.gold,'power'));}
-for(var i=0;i<8;i++){var x=-1.72+(i%4)*1.15,z=i<4?-.92:.92;add(part(x,.11,z,.36,.1,.23,C.chip,'power'));add(part(x,.18,z,.28,.035,.15,C.gold,'power'));}
-for(var i=0;i<3;i++){var z=-.38+i*.38;add(part(0,.34,z,3.65,.08,.13,C.copper,'power'));for(var k=0;k<3;k++)add(part(-1.45+k*1.45,.39,z,.12,.035,.12,C.gold,'power'));}
-/* connector banks and visible contact pins */
-for(var i=0;i<3;i++){var z=-.72+i*.72;add(part(2.45,-.12,z,.6,.46,.45,C.dark,'connectors'));add(part(2.79,-.1,z,.3,.27,.32,C.gold,'connectors'));for(var k=0;k<4;k++)add(part(2.98,-.1,z-.12+k*.08,.13,.065,.045,C.silver,'connectors'));}
-add(part(-2.42,-.12,.95,.5,.36,.32,C.dark,'connectors'));for(var i=0;i<8;i++)add(part(-2.7,-.12,.72+i*.065,.13,.06,.032,C.gold,'connectors'));
-/* raised lid, seal and fasteners */
-add(part(0,1.05,0,5.52,.16,3.48,C.al,'lid'));
-add(part(0,.91,0,4.9,.025,2.9,C.rubber,'seal'));
-for(var i=0;i<5;i++)for(var j=0;j<2;j++){var x=-2.25+i*1.125,z=j?1.35:-1.35;add(part(x,1.145,z,.14,.055,.14,C.silver,'lid'));}
-var yaw=-.62,pitch=.52,dist=15.5,explode=true,wire=false,lastX=0,lastY=0,dragging=false,pointers=new Map(),pinchStart=0,pinchDist=0;
-function mul(a,b){var o=new Float32Array(16);for(var c=0;c<4;c++)for(var r=0;r<4;r++)o[c*4+r]=a[r]*b[c*4]+a[4+r]*b[c*4+1]+a[8+r]*b[c*4+2]+a[12+r]*b[c*4+3];return o;}
-function perspective(fovy,aspect,near,far){var f=1/Math.tan(fovy/2),nf=1/(near-far),o=new Float32Array(16);o[0]=f/aspect;o[5]=f;o[10]=(far+near)*nf;o[11]=-1;o[14]=2*far*near*nf;return o;}
-function ident(){var o=new Float32Array(16);o[0]=o[5]=o[10]=o[15]=1;return o;}
-function rx(a){var c=Math.cos(a),s=Math.sin(a),o=ident();o[5]=c;o[6]=s;o[9]=-s;o[10]=c;return o;}
-function ry(a){var c=Math.cos(a),s=Math.sin(a),o=ident();o[0]=c;o[2]=-s;o[8]=s;o[10]=c;return o;}
-function trans(x,y,z){var o=ident();o[12]=x;o[13]=y;o[14]=z;return o;}
-function scale(x,y,z){var o=ident();o[0]=x;o[5]=y;o[10]=z;return o;}
-function normal3(m){return new Float32Array([m[0],m[1],m[2],m[4],m[5],m[6],m[8],m[9],m[10]]);}
-function resize(){var dpr=Math.min(window.devicePixelRatio||1,1.5),w=Math.max(1,Math.floor(innerWidth*dpr)),h=Math.max(1,Math.floor(innerHeight*dpr));if(canvas.width!==w||canvas.height!==h){canvas.width=w;canvas.height=h;}gl.viewport(0,0,w,h);}
-function draw(){resize();gl.enable(gl.DEPTH_TEST);gl.depthFunc(gl.LEQUAL);gl.clearColor(0,0,0,0);gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);var portrait=canvas.height>canvas.width;var proj=perspective(portrait?1.0:.68,canvas.width/canvas.height,.1,100);var view=mul(trans(0,0,-dist),mul(rx(pitch),ry(yaw)));var nmat=normal3(view);gl.uniformMatrix3fv(loc.normal,false,nmat);objects.forEach(function(o){var dy=0;if(explode){if(o.g==='lid')dy=1.15;else if(o.g==='seal')dy=.72;else if(o.g==='compute')dy=.38;else if(o.g==='power')dy=.25;else if(o.g==='connectors')dy=.18;else if(o.g==='board')dy=.08;else if(o.g==='base')dy=-.3;}var model=mul(trans(o.p[0],o.p[1]+dy,o.p[2]),scale(o.s[0],o.s[1],o.s[2]));var mvp=mul(proj,mul(view,model));gl.uniformMatrix4fv(loc.mvp,false,mvp);gl.uniform3fv(loc.color,o.c);if(wire){gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER,lb);gl.drawElements(gl.LINES,lines.length,gl.UNSIGNED_SHORT,0);}else{gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER,ib);gl.drawElements(gl.TRIANGLES,tri.length,gl.UNSIGNED_SHORT,0);}});requestAnimationFrame(draw);}
-window.addEventListener('error',function(){fallback.classList.add('show');},{passive:true});window.addEventListener('resize',resize,{passive:true});
-function pointDist(){var a=Array.from(pointers.values());if(a.length<2)return 0;return Math.hypot(a[0].x-a[1].x,a[0].y-a[1].y);}
-canvas.addEventListener('pointerdown',function(e){canvas.setPointerCapture(e.pointerId);pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});dragging=true;lastX=e.clientX;lastY=e.clientY;if(pointers.size===2){pinchDist=pointDist();pinchStart=dist;}});
-canvas.addEventListener('pointermove',function(e){if(!pointers.has(e.pointerId))return;var old=pointers.get(e.pointerId);pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});if(pointers.size>=2){var d=pointDist();if(pinchDist>0)dist=Math.max(5.8,Math.min(17,pinchStart*pinchDist/Math.max(1,d)));}else if(dragging){yaw+=(e.clientX-lastX)*.009;pitch+=(e.clientY-lastY)*.008;pitch=Math.max(-1.05,Math.min(1.15,pitch));}lastX=e.clientX;lastY=e.clientY;});
-function endPointer(e){pointers.delete(e.pointerId);if(!pointers.size)dragging=false;if(pointers.size<2)pinchDist=0;}
-canvas.addEventListener('pointerup',endPointer);canvas.addEventListener('pointercancel',endPointer);
-canvas.addEventListener('wheel',function(e){e.preventDefault();dist=Math.max(5.8,Math.min(17,dist+e.deltaY*.012));},{passive:false});
-document.getElementById('explode').addEventListener('click',function(){explode=!explode;this.classList.toggle('active',explode);});
-document.getElementById('wire').addEventListener('click',function(){wire=!wire;this.classList.toggle('active',wire);});
-document.getElementById('reset').addEventListener('click',function(){yaw=-.62;pitch=.52;dist=15.5;explode=true;wire=false;document.getElementById('explode').classList.add('active');document.getElementById('wire').classList.remove('active');});
-gl.disable(gl.CULL_FACE);gl.clearColor(0,0,0,0);draw();
+var world=document.getElementById('world'),stage=document.getElementById('stage'),unit=43,parts=[];
+var C={al:'#8798a1',silver:'#c5d0d4',dark:'#202c35',rubber:'#11171c',pcb:'#08734b',green:'#16845b',gold:'#c7953e',copper:'#a9572c',chip:'#263740',chipTop:'#65747a',ceramic:'#bdbdaf',blue:'#2e5065'};
+function add(x,y,z,sx,sy,sz,color,group){parts.push({x:x,y:y,z:z,sx:sx,sy:sy,sz:sz,color:color,group:group||'fixed'});}
+add(0,-.42,0,5.7,.38,3.65,C.al,'base');add(0,-.22,0,5.35,.12,3.3,C.dark,'base');
+for(var i=0;i<13;i++)add(-2.45+i*.408,-.19,0,.075,.035,2.85,C.silver,'base');
+add(0,-.015,0,4.55,.12,2.55,C.pcb,'board');
+for(i=0;i<13;i++)add(-1.95+i*.325,.052,0,.026,.009,1.95,C.copper,'board');
+for(i=0;i<7;i++)add(0,.055,-.9+i*.3,3.8,.009,.022,C.copper,'board');
+for(i=0;i<4;i++)for(var j=0;j<2;j++)add(-2.05+i*1.36,.061,-1.05+j*2.1,.12,.015,.12,C.gold,'board');
+add(0,.16,0,1.5,.22,1.28,C.dark,'compute');add(0,.29,0,1.23,.09,1.02,C.chip,'compute');add(0,.345,0,.98,.045,.79,C.silver,'compute');add(0,.375,0,.82,.035,.63,C.chip,'compute');
+for(i=0;i<6;i++){var x=-1.55+(i%3)*1.55,z=i<3?-.7:.7;add(x,.14,z,.72,.25,.58,C.dark,'power');add(x,.29,z,.56,.06,.43,C.chipTop,'power');for(var k=0;k<4;k++)add(x-.19+k*.125,.335,z,.065,.025,.34,C.silver,'power');}
+for(i=0;i<4;i++){x=-1.35+i*.9;add(x,.18,-1.03,.46,.42,.46,C.dark,'power');add(x,.405,-1.03,.39,.035,.39,C.silver,'power');add(x,.428,-1.03,.13,.02,.13,C.gold,'power');}
+for(i=0;i<8;i++){x=-1.72+(i%4)*1.15;z=i<4?-.92:.92;add(x,.11,z,.36,.1,.23,C.chip,'power');add(x,.18,z,.28,.035,.15,C.gold,'power');}
+for(i=0;i<3;i++){z=-.72+i*.72;add(2.45,-.12,z,.6,.46,.45,C.dark,'connectors');add(2.79,-.1,z,.3,.27,.32,C.gold,'connectors');for(k=0;k<4;k++)add(2.98,-.1,z-.12+k*.08,.13,.065,.045,C.silver,'connectors');}
+add(-2.42,-.12,.95,.5,.36,.32,C.dark,'connectors');for(i=0;i<8;i++)add(-2.7,-.12,.72+i*.065,.13,.06,.032,C.gold,'connectors');
+add(0,1.05,0,5.52,.16,3.48,C.al,'lid');add(0,.91,0,4.9,.025,2.9,C.rubber,'seal');
+for(i=0;i<5;i++)for(j=0;j<2;j++)add(-2.25+i*1.125,1.145,j?1.35:-1.35,.14,.055,.14,C.silver,'lid');
+function make(p){var el=document.createElement('div');el.className='part';el.style.setProperty('--w',(p.sx*unit)+'px');el.style.setProperty('--h',(p.sy*unit)+'px');el.style.setProperty('--d',(p.sz*unit)+'px');var y=-p.y*unit,z=p.z*unit,x=p.x*unit;el.dataset.group=p.group;el.dataset.x=x;el.dataset.y=y;el.dataset.z=z;el.style.width=(p.sx*unit)+'px';el.style.height=(p.sy*unit)+'px';el.style.transform='translate3d('+x+'px,'+y+'px,'+z+'px) translate(-50%,-50%)';['front','back','right','left','top','bottom'].forEach(function(face){var f=document.createElement('div');f.className='face '+face;f.style.background=p.color;el.appendChild(f);});world.appendChild(el);p.el=el;}
+parts.forEach(make);
+var yaw=-34,pitch=-26,zoom=.82,exploded=true,wire=false,points=new Map(),last=null,pinch=0,startZoom=zoom;
+function render(){world.style.transform='rotateX('+pitch+'deg) rotateY('+yaw+'deg) scale('+zoom+')';parts.forEach(function(p){var dy=0;if(exploded){if(p.group==='lid')dy=-1.15*unit;else if(p.group==='seal')dy=-.72*unit;else if(p.group==='compute')dy=-.38*unit;else if(p.group==='power')dy=-.25*unit;else if(p.group==='connectors')dy=-.18*unit;else if(p.group==='board')dy=-.08*unit;else if(p.group==='base')dy=.3*unit;}p.el.style.transform='translate3d('+p.el.dataset.x+'px,'+(Number(p.el.dataset.y)+dy)+'px,'+p.el.dataset.z+'px) translate(-50%,-50%)';});}
+function distance(){var a=Array.from(points.values());return a.length<2?0:Math.hypot(a[0].x-a[1].x,a[0].y-a[1].y);}
+stage.addEventListener('pointerdown',function(e){stage.setPointerCapture(e.pointerId);points.set(e.pointerId,{x:e.clientX,y:e.clientY});last={x:e.clientX,y:e.clientY};if(points.size===2){pinch=distance();startZoom=zoom;}});
+stage.addEventListener('pointermove',function(e){if(!points.has(e.pointerId))return;points.set(e.pointerId,{x:e.clientX,y:e.clientY});if(points.size>1){var d=distance();if(pinch>0)zoom=Math.max(.48,Math.min(1.5,startZoom*d/pinch));}else if(last){yaw+=(e.clientX-last.x)*.55;pitch=Math.max(-75,Math.min(75,pitch+(e.clientY-last.y)*.45));}last={x:e.clientX,y:e.clientY};render();});
+function end(e){points.delete(e.pointerId);if(points.size<2)pinch=0;last=points.size?Array.from(points.values())[0]:null;}
+stage.addEventListener('pointerup',end);stage.addEventListener('pointercancel',end);
+document.getElementById('explode').addEventListener('click',function(){exploded=!exploded;this.classList.toggle('active',exploded);render();});
+document.getElementById('wire').addEventListener('click',function(){wire=!wire;world.classList.toggle('wire',wire);this.classList.toggle('active',wire);});
+document.getElementById('reset').addEventListener('click',function(){yaw=-34;pitch=-26;zoom=.82;exploded=true;wire=false;world.classList.remove('wire');document.getElementById('explode').classList.add('active');document.getElementById('wire').classList.remove('active');render();});
+render();
 })();
-</script>
-</body>
-</html>
+</script></body></html>
