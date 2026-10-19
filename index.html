@@ -1,68 +1,142 @@
 <!doctype html>
-<html lang="zh-CN">
-<head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
-<meta name="theme-color" content="#0b1016"><title>MCU 3D</title>
+<html lang="zh-CN"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="color-scheme" content="dark"><title>Model 3 电机控制器 MCU · 三维拆解</title>
 <style>
-:root{color-scheme:dark}*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#0b1016;font-family:system-ui,-apple-system,sans-serif;color:#eaf1f8;touch-action:none}
-#v{display:block;width:100vw;height:100dvh;touch-action:none}
-.ui{position:fixed;left:12px;right:12px;bottom:calc(12px + env(safe-area-inset-bottom));display:flex;gap:8px;align-items:center;justify-content:center;flex-wrap:wrap;pointer-events:none}
-button,.range{pointer-events:auto;background:#17212cdd;border:1px solid #344657;color:#eaf1f8;border-radius:13px;padding:11px 14px;font-size:14px;backdrop-filter:blur(12px)}
-button:active{background:#294052}.range{display:flex;align-items:center;gap:8px;padding:7px 12px;min-width:150px}input{width:105px;accent-color:#b9d9ee}
-.hint{position:fixed;top:calc(12px + env(safe-area-inset-top));left:0;right:0;text-align:center;color:#91a4b7;font-size:12px;letter-spacing:.08em;pointer-events:none}
-#err{display:none;position:fixed;inset:0;place-items:center;padding:28px;text-align:center;color:#dce8f4}
-</style></head>
-<body><canvas id="v"></canvas><div class="hint">MODEL 3 · MOTOR CONTROL UNIT</div>
-<div class="ui"><button id="reset">重置视角</button><button id="case">外壳透明</button><button id="explode">拆解视图</button><label class="range">拆解程度 <input id="amount" type="range" min="0" max="100" value="0"></label></div><div id="err">此设备暂不支持画布渲染，请刷新页面重试。</div>
+*{box-sizing:border-box}html,body{margin:0;height:100%;overflow:hidden;background:#080d13;color:#edf3f8;font-family:system-ui,-apple-system,"Segoe UI",sans-serif}
+#stage{position:absolute;inset:0;touch-action:none}canvas{display:block;width:100%;height:100%;touch-action:none}
+.top{position:absolute;top:0;left:0;right:0;padding:calc(10px + env(safe-area-inset-top,0px)) 14px 22px;background:linear-gradient(#080d13f0,transparent);pointer-events:none}
+.top b{font-size:16px;font-weight:650}.top span{display:block;font-size:10px;letter-spacing:.14em;color:#8ba2b9;margin-bottom:3px}
+#panel{position:absolute;left:0;right:0;bottom:0;padding:22px 8px calc(8px + env(safe-area-inset-bottom,0px));background:linear-gradient(transparent,#080d13 22%);display:flex;flex-direction:column;gap:6px}
+#info{font-size:12px;color:#c4d1dc;padding:0 4px;min-height:16px}
+.row{display:flex;gap:6px}.sc{overflow-x:auto;scrollbar-width:none}.sc::-webkit-scrollbar{display:none}
+button{flex:none;border:1px solid #364656;border-radius:11px;min-height:42px;padding:8px 13px;background:#141e29;color:#eaf1f8;font-size:13px;touch-action:manipulation;white-space:nowrap}
+.row:not(.sc) button{flex:1}button.on{background:#dce8f2;color:#0b1219;border-color:#dce8f2}button.off{opacity:.4}
+.sl{display:flex;align-items:center;gap:10px;font-size:12px;color:#9aa9b8;padding:0 4px}.sl input{flex:1;min-height:30px}.sl span{width:38px;text-align:right}
+.foot{font-size:10px;color:#7d8fa1;padding:0 4px}.foot i{display:inline-block;width:6px;height:6px;border-radius:50%;background:#e6b76a;margin-right:6px}
+#lab{position:absolute;left:0;top:0;display:none;transform:translate(-50%,-50%);pointer-events:none;font-size:12px;padding:4px 10px;border-radius:20px;background:#0b1219e6;border:1px solid #ffc857;color:#ffe3a3;white-space:nowrap;z-index:3}
+.row:not(.sc) button{padding:8px 4px}
+#err{display:none;position:absolute;left:16px;right:16px;top:35%;padding:16px;background:#251c1c;border:1px solid #764747;border-radius:12px;font-size:13px;line-height:1.6;z-index:5}
+</style></head><body>
+<div id="stage"></div>
+<header class="top"><span>DRIVE UNIT INVERTER</span><b>Model 3 电机控制器 MCU</b></header>
+<div id="lab"></div><div id="err"></div>
+<div id="panel">
+<div id="info"></div>
+<div class="row"><button id="bHide">隐藏</button><button id="bIso">隔离</button><button id="bAll">全部显示</button><button id="bNone">取消选择</button></div>
+<div class="row sc" id="chips"></div>
+<div class="row sc"><button data-v="front">正视</button><button data-v="side">侧视</button><button data-v="top">俯视</button><button data-v="bottom">底视</button><button data-v="iso">等轴测</button><button id="bEx">拆解</button><button id="bWire">线框</button><button id="bReset">复位</button></div>
+<label class="sl">外壳透明度<input type="range" id="op" min="10" max="100" value="100"><span id="opv">100%</span></label>
+<div class="foot"><i></i>尺寸均为近似 · 接口/螺栓/冷却结构依据维修手册条目,功率模块数量依据拆解报道 · 未锁定 3DU/4DU</div>
+</div>
+<script>function showErr(m){var e=document.getElementById('err');e.textContent=m||'Three.js 未能加载,请检查手机网络后刷新页面。';e.style.display='block'}</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js" onerror="showErr()"></script>
 <script>
-(()=>{'use strict';
-const canvas=document.getElementById('v'),ctx=canvas.getContext('2d',{alpha:false});if(!ctx){document.getElementById('err').style.display='grid';return}
-let W=0,H=0,dpr=1,rx=-.48,ry=.72,zoom=1,transparent=false,exploded=0,drag=null,lastPinch=0;
-const parts=[];
-function box(name,c,s,mat,opts={}){parts.push({name,c,s,mat,...opts})}
-function build(){
-box('base',[0,0,0],[5.9,.38,3.8],'#35414a',{case:true});
-box('lid',[0,.47,0],[5.85,.42,3.75],'#9ba8b0',{case:true});
-for(let i=0;i<18;i++)box('fin',[-2.55+i*.30,.77,0],[.12,.18,3.1],'#75838d',{case:true});
-for(let x of [-2.55,2.55])for(let z of [-1.45,1.45])box('bolt',[x,.72,z],[.22,.09,.22],'#c7d0d5',{case:true});
-box('pcb',[0,.37,0],[4.65,.13,2.72],'#176b50');
-box('cpu',[-.35,.58,-.15],[1.25,.24,1.05],'#222a31');
-box('cpuTop',[-.35,.715,-.15],[1.08,.05,.88],'#a7b0b4');
-for(let x of [-1.72,-.95,.8,1.58])for(let z of [-.82,.82])box('chip',[x,.55,z],[.42,.15,.36],'#262e35');
-for(let i=0;i<7;i++)box('capacitor',[-2.05+i*.65,.68,-1.04],[.3,.4,.32],i%2?'#d3d8d7':'#b3bec4');
-for(let i=0;i<5;i++)box('copper',[-1.8+i*.88,.53,.3],[.13,.07,1.2],'#c17d43');
-box('power',[1.72,.64,0],[.78,.28,1.55],'#444c53');
-for(let i=0;i<3;i++)box('connector',[-2.65,.28,-.85+i*.8],[.65,.46,.48],'#d0a34e');
-box('lowvolt',[2.65,.3,1.18],[.48,.35,.45],'#d9dfe2');
-box('harness',[2.55,.15,1.18],[.22,.2,.2],'#252a30');
-for(let i=0;i<6;i++)box('pin',[2.67,.32,.98+i*.08],[.04,.22,.035],'#c6cdd2');
+(function(){
+if(!window.THREE){showErr();return}
+try{
+const T=THREE,$=s=>document.querySelector(s),cl=(v,a,b)=>Math.max(a,Math.min(b,v));
+const scene=new T.Scene();scene.background=new T.Color('#080d13');scene.fog=new T.Fog('#080d13',18,44);
+const camera=new T.PerspectiveCamera(38,innerWidth/innerHeight,.1,100);
+const r=new T.WebGLRenderer({antialias:true});r.setPixelRatio(Math.min(devicePixelRatio||1,1.8));r.outputEncoding=T.sRGBEncoding;r.toneMapping=T.ACESFilmicToneMapping;r.toneMappingExposure=1.1;$('#stage').appendChild(r.domElement);
+scene.add(new T.HemisphereLight(0xc9e2ff,0x26303a,1.0));
+[[0xfff0db,1.5,5,9,7],[0x6bafff,1,-7,3,-5],[0xffffff,.6,0,-3,5]].forEach(a=>{const l=new T.DirectionalLight(a[0],a[1]);l.position.set(a[2],a[3],a[4]);scene.add(l)});
+const grid=new T.GridHelper(20,30,0x324454,0x1a2a38);grid.position.y=-.8;scene.add(grid);
+const M=(c,m,ro)=>new T.MeshStandardMaterial({color:c,metalness:m,roughness:ro});
+const al=M('#8997a3',.78,.32),lidM=M('#aeb9c3',.72,.3),dk=M('#202c37',.48,.4),bk=M('#111a23',.25,.42),cu=M('#c99d55',.82,.27),gd=M('#e0c17f',.75,.28),pcb=M('#19745f',.2,.5),chip=M('#273540',.35,.35),sv=M('#d0d8de',.8,.24),bl=M('#31566a',.35,.38);
+const root=new T.Group();scene.add(root);const parts=[];let cur;
+function P(id,name,off,shell,bs,src){const g=new T.Group();bs=bs||[0,0,0];g.userData={id,name,src:src||'apx',base:new T.Vector3(bs[0],bs[1],bs[2]),exp:new T.Vector3(off[0],off[1],off[2]),shell:!!shell};root.add(g);parts.push(g);cur=g}
+function B(x,y,z,a,b,c,m){const o=new T.Mesh(new T.BoxGeometry(a,b,c),m);o.position.set(x,y,z);cur.add(o)}
+function C(x,y,z,rad,h,m,ax){const o=new T.Mesh(new T.CylinderGeometry(rad,rad,h,20),m);o.position.set(x,y,z);if(ax==='x')o.rotation.z=Math.PI/2;if(ax==='z')o.rotation.x=Math.PI/2;cur.add(o)}
+function O(x,y,z,rad,t,m,ax){const o=new T.Mesh(new T.TorusGeometry(rad,t,8,24),m);o.position.set(x,y,z);if(ax==='x')o.rotation.y=Math.PI/2;else o.rotation.x=Math.PI/2;cur.add(o)}
+function U(p,rad,m){const c=new T.CatmullRomCurve3(p.map(a=>new T.Vector3(a[0],a[1],a[2])));cur.add(new T.Mesh(new T.TubeGeometry(c,32,rad,8,false),m))}
+function Bt(x,y,z,rad){C(x,y,z,rad,.055,sv);B(x,y+.032,z,.075,.012,.075,dk)}
+// 1 下壳体
+P('housing','下壳体(铸铝)',[0,0,0],true);
+B(0,-.43,0,5.65,.22,3.65,al);B(-2.72,-.04,0,.21,.64,3.65,al);B(2.72,-.04,0,.21,.64,3.65,al);B(0,-.04,-1.72,5.65,.64,.21,al);B(0,-.04,1.72,5.65,.64,.21,al);
+B(0,.30,-1.62,5.25,.08,.09,dk);B(0,.30,1.62,5.25,.08,.09,dk);B(-2.57,.30,0,.09,.08,3.15,dk);B(2.57,.30,0,.09,.08,3.15,dk);
+B(0,-.48,0,6.05,.1,4.05,al);for(const x of[-2,-.67,.67,2])for(const z of[-1.93,1.93])Bt(x,-.4,z,.07);for(const x of[-2.93,2.93])for(const z of[-.6,.6])Bt(x,-.4,z,.07);
+for(let s=-1;s<=1;s+=2)for(let i=0;i<5;i++){const z=-1.15+i*.575;B(s*2.835,-.03,z,.055,.36,.095,dk);B(s*2.868,-.03,z,.018,.30,.045,al)}
+P('gasket','逆变器密封垄',[0,-.55,0],false,[0,0,0],'ref');
+B(0,-.57,0,6.0,.04,4.0,bk);
+// 2 上盖
+P('lid','上盖',[0,2.4,0],true);
+B(0,.48,0,5.38,.18,3.36,lidM);B(0,.585,0,5.04,.055,3.02,al);
+for(let i=0;i<7;i++)B(-1.85+i*.62,.62,0,.09,.035,2.30,al);
+for(const x of[-2.35,2.35])for(const z of[-1.25,1.25])Bt(x,.62,z,.07);
+for(const z of[-1.48,1.48]){B(0,.285,z,4.72,.025,.035,sv);for(let i=0;i<9;i++)C(-2.05+i*.51,.285,z,.045,.026,dk)}
+// 3 高压接口 4 信号接口
+P('hv','高压插座(HV Header)',[0,0,1.1]);
+B(-1.62,.02,2.02,1.18,.57,.54,dk);B(-1.62,.05,2.33,.95,.39,.14,bk);B(-1.62,.27,2.12,1.03,.08,.32,bl);for(let i=0;i<2;i++)B(-1.87+i*.5,.28,2.30,.16,.05,.05,gd);
+P('sig','低压插座(LV)',[0,0,1.1]);
+B(1.63,.02,2.02,.86,.45,.48,bl);B(1.63,.02,2.30,.66,.29,.12,bk);for(let i=0;i<7;i++)B(1.36+i*.09,.03,2.37,.027,.13,.022,gd);
+// 5 冷却接头
+P('cool','冷却液进/出口接头',[1.2,0,0]);
+for(const z of[-.67,.67]){C(2.94,.05,z,.26,.46,sv,'x');C(3.19,.05,z,.20,.10,bl,'x');O(3.23,.05,z,.15,.035,bk,'x');C(3.25,.05,z,.105,.04,bk,'x')}
+// 6 三相输出端子
+P('phase','三相输出端子',[0,1.5,0]);
+B(.12,.39,-.16,2.15,.12,1.55,dk);
+for(let i=0;i<3;i++){const x=-.58+i*.7;B(x,.50,-.16,.36,.18,.68,cu);C(x,.60,-.40,.105,.035,gd);O(x,.621,-.40,.067,.014,bk);C(x,.665,-.40,.135,.045,sv);O(x,.69,-.40,.105,.018,cu);C(x,.70,-.40,.065,.055,gd)}
+P('phcov','三相检修盖(2×螺栓)',[0,3.2,0],false,[0,0,0],'ref');
+B(.12,.80,-.30,2.5,.07,1.1,lidM);Bt(-.95,.855,-.30,.07);Bt(1.19,.855,-.30,.07);
+// 7 功率基板与模块
+P('heat','针翅散热底板',[0,.3,0],false,[0,0,0],'ref');
+B(0,-.12,0,4.72,.12,2.72,al);
+for(let i=0;i<12;i++)for(let j=0;j<7;j++)C(-2+i*.36,-.24,-1+j*.33,.045,.12,sv);
+P('power','SiC 功率模块 ×24',[0,.75,0],false,[0,0,0],'ref');
+for(let p=0;p<3;p++)for(let c=0;c<2;c++)for(let k=0;k<4;k++){const x=-1.4+p*1.4+(c?.27:-.27),z=-.58+k*.39;B(x,0,z,.4,.1,.3,chip);B(x,.065,z,.14,.03,.2,gd)}
+// 8 直流电容
+P('cap','直流母线电容',[0,.95,.5]);
+for(let i=0;i<4;i++){const x=-1.65+i*.9;C(x,.08,.92,.18,.40,sv);C(x,.29,.92,.14,.035,dk);C(x,.315,.92,.06,.018,gd)}
+// 9 控制板
+P('ctrl','控制板与线束接插件',[0,1.65,-.6],false,[0,.3,0]);
+B(.08,.03,-.93,2.35,.12,.63,pcb);for(let i=0;i<7;i++)B(-.82+i*.28,.115,-.93,.13,.08,.19,chip);for(let i=0;i<8;i++)B(-.83+i*.24,.11,-.64,.045,.035,.045,gd);
+for(let i=0;i<4;i++){const x=-1.55+i*1.03;C(x,.01,-1.17,.075,.22,sv);C(x,.13,-1.17,.045,.035,gd)}
+for(let i=0;i<5;i++)B(-2.12+i*.18,.02,1.08,.08,.07,.28,bl);
+// 10 母排
+P('bus','铜母排',[0,1.0,0]);
+for(let i=0;i<3;i++){const x=-.58+i*.58;B(x,.2,-.05,.13,.06,1.58,cu);B(x,.25,.63,.24,.05,.17,gd);U([[x,.14,.25],[x,.22,.48],[x,.22,.68],[x+.12,.2,.82]],.045,cu);C(x+.12,.2,.82,.075,.045,gd)}
+// 每个网格独立材质(便于高亮/透明/线框)
+parts.forEach(g=>g.children.forEach(m=>{m.material=m.material.clone();m.userData.e=m.material.emissive.getHex()}));
+// 状态
+let sel=null,iso=null,ex=0,exT=0,wire=false;const ol=new T.BoxHelper(root,0xffc857);ol.material.depthTest=false;ol.renderOrder=10;ol.visible=false;scene.add(ol);const bx=new T.Box3(),c3=new T.Vector3();const hid=new Set(),chips={};
+function vis(g){return iso?g===iso:!hid.has(g)}
+function refresh(){
+ parts.forEach(g=>{g.visible=vis(g);const on=g===sel;g.children.forEach(m=>m.material.emissive.setHex(on?0x1d4f82:m.userData.e));chips[g.userData.id].className=(on?'on ':'')+(vis(g)?'':'off')});
+ ol.visible=!!sel&&vis(sel);$('#lab').style.display=ol.visible?'block':'none';if(sel)$('#lab').textContent=sel.userData.name;
+ $('#info').textContent=sel?sel.userData.name+(hid.has(sel)?'(已隐藏)':'')+' · '+(sel.userData.src==='ref'?'结构依据维修手册条目/公开拆解资料,尺寸近似':'近似建模'):'点击模型零件选中,或从下方列表选择';
+ $('#bHide').textContent=sel&&hid.has(sel)?'显示':'隐藏';$('#bIso').className=iso?'on':'';
 }
-build();
-function resize(){dpr=Math.min(devicePixelRatio||1,1.65);W=innerWidth;H=innerHeight;canvas.width=Math.round(W*dpr);canvas.height=Math.round(H*dpr);canvas.style.width=W+'px';canvas.style.height=H+'px';draw()}
-function project(p){let [x,y,z]=p,cy=Math.cos(ry),sy=Math.sin(ry),cx=Math.cos(rx),sx=Math.sin(rx);let x1=x*cy-z*sy,z1=x*sy+z*cy,y1=y*cx-z1*sx,z2=y*sx+z1*cx;let scale=Math.min(W/9.5,H/7.8)*zoom;let f=9/(9+z2*.15);return [W/2+x1*scale*f,H*.47-y1*scale*f,z2]}
-function shade(hex,k){let n=parseInt(hex.slice(1),16),r=Math.min(255,((n>>16)&255)*k),g=Math.min(255,((n>>8)&255)*k),b=Math.min(255,(n&255)*k);return 'rgb('+r+','+g+','+b+')'}
-function drawBox(p){let [x,y,z]=p.c,[a,b,c]=p.s;let lift=exploded*(p.case?1.25:(p.name==='pcb'?-.1: p.name==='connector'?-.8:.85));let center=[x,y+lift,z];let v=[[-a/2,-b/2,-c/2],[a/2,-b/2,-c/2],[a/2,b/2,-c/2],[-a/2,b/2,-c/2],[-a/2,-b/2,c/2],[a/2,-b/2,c/2],[a/2,b/2,c/2],[-a/2,b/2,c/2]].map(q=>project([q[0]+center[0],q[1]+center[1],q[2]+center[2]]));
-let faces=[[0,1,2,3,1.08],[4,7,6,5,.78],[0,4,5,1,.9],[3,2,6,7,1.16],[0,3,7,4,.68],[1,5,6,2,.95]];
-faces.sort((u,vv)=>u.reduce((s,i)=>s+v[i][2],0)-vv.reduce((s,i)=>s+v[i][2],0));
-for(let f of faces){ctx.beginPath();ctx.moveTo(v[f[0]][0],v[f[0]][1]);for(let i=1;i<4;i++)ctx.lineTo(v[f[i]][0],v[f[i]][1]);ctx.closePath();ctx.fillStyle=shade(p.mat,f[4]);ctx.fill();ctx.strokeStyle='rgba(10,17,23,.38)';ctx.lineWidth=.7;ctx.stroke()}
-}
-function draw(){if(!ctx||!W||!H)return;ctx.setTransform(dpr,0,0,dpr,0,0);let g=ctx.createLinearGradient(0,0,W,H);g.addColorStop(0,'#111a24');g.addColorStop(1,'#080c11');ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
-ctx.save();ctx.translate(W/2,H*.5);ctx.scale(1,1);ctx.restore();
-ctx.strokeStyle='rgba(130,160,185,.07)';ctx.lineWidth=1;for(let i=0;i<12;i++){let y=H*.18+i*H*.055;ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke()}
-const sorted=[...parts].sort((a,b)=>project([a.c[0],a.c[1],a.c[2]])[2]-project([b.c[0],b.c[1],b.c[2]])[2]);
-for(const p of sorted){if(transparent&&p.case){if(p.name!=='base'&&p.name!=='lid')continue;p.mat='#748895';}drawBox(p)}
-ctx.fillStyle='rgba(0,0,0,.18)';ctx.beginPath();ctx.ellipse(W/2,H*.78,Math.min(W*.34,190),Math.min(H*.045,30),0,0,Math.PI*2);ctx.fill();
-}
-function reset(){rx=-.48;ry=.72;zoom=1;exploded=0;document.getElementById('amount').value=0;transparent=false;document.getElementById('case').textContent='外壳透明';draw()}
-document.getElementById('reset').onclick=reset;
-document.getElementById('case').onclick=()=>{transparent=!transparent;document.getElementById('case').textContent=transparent?'恢复外壳':'外壳透明';draw()};
-document.getElementById('explode').onclick=()=>{exploded=exploded?0:.65;document.getElementById('amount').value=Math.round(exploded/1.2*100);draw()};
-document.getElementById('amount').oninput=e=>{exploded=Number(e.target.value)/100*1.2;draw()};
-canvas.addEventListener('pointerdown',e=>{drag={x:e.clientX,y:e.clientY,rx,ry};canvas.setPointerCapture(e.pointerId)});
-canvas.addEventListener('pointermove',e=>{if(!drag)return;ry=drag.ry+(e.clientX-drag.x)*.008;rx=Math.max(-1.35,Math.min(1.25,drag.rx+(e.clientY-drag.y)*.008));draw()});
-canvas.addEventListener('pointerup',()=>drag=null);canvas.addEventListener('pointercancel',()=>drag=null);
-canvas.addEventListener('wheel',e=>{zoom=Math.max(.55,Math.min(1.8,zoom-e.deltaY*.001));draw()},{passive:true});
-let touchStart=null;canvas.addEventListener('touchstart',e=>{if(e.touches.length===2)lastPinch=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY)},{passive:true});
-canvas.addEventListener('touchmove',e=>{if(e.touches.length===2){let d=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);if(lastPinch)zoom=Math.max(.55,Math.min(1.8,zoom+(d-lastPinch)*.004));lastPinch=d;draw()}},{passive:true});
-addEventListener('resize',resize);resize();
-})();</script></body></html>
+parts.forEach(g=>{const b=document.createElement('button');b.textContent=g.userData.name.replace(/\(.*\)/,'');b.onclick=()=>{sel=sel===g?null:g;refresh()};$('#chips').appendChild(b);chips[g.userData.id]=b});
+$('#bHide').onclick=()=>{if(!sel)return;hid.has(sel)?hid.delete(sel):hid.add(sel);if(iso===sel)iso=null;refresh()};
+$('#bIso').onclick=()=>{if(!sel)return;iso=iso===sel?null:sel;hid.delete(sel);refresh()};
+$('#bAll').onclick=()=>{hid.clear();iso=null;refresh()};
+$('#bNone').onclick=()=>{sel=null;refresh()};
+$('#bEx').onclick=()=>{exT=exT?0:1;$('#bEx').className=exT?'on':''};
+$('#bWire').onclick=()=>{wire=!wire;parts.forEach(g=>g.children.forEach(m=>m.material.wireframe=wire));$('#bWire').className=wire?'on':''};
+$('#op').oninput=e=>{const v=e.target.value/100;$('#opv').textContent=e.target.value+'%';parts.forEach(g=>{if(g.userData.shell)g.children.forEach(m=>{m.material.transparent=v<1;m.material.opacity=v;m.material.depthWrite=v>.99;m.material.needsUpdate=true})})};
+// 相机
+let az=.7,el=.5,zoom=1;const V={front:[0,0],side:[Math.PI/2,0],top:[0,1.5],bottom:[0,-1.5],iso:[.7,.5]};
+document.querySelectorAll('[data-v]').forEach(b=>b.onclick=()=>{const v=V[b.dataset.v];az=v[0];el=v[1]});
+$('#bReset').onclick=()=>{az=.7;el=.5;zoom=1;exT=0;$('#bEx').className='';$('#op').value=100;$('#op').oninput({target:$('#op')});hid.clear();iso=null;sel=null;refresh()};
+function cam(){const rad=11/zoom*(innerWidth<innerHeight?1.5:1),ty=.4+ex*.5;camera.position.set(rad*Math.cos(el)*Math.sin(az),ty+rad*Math.sin(el),rad*Math.cos(el)*Math.cos(az));camera.lookAt(0,ty,0)}
+function rs(){const w=innerWidth,h=innerHeight;camera.aspect=w/h;camera.setViewOffset(w,h,0,Math.round($('#panel').offsetHeight*.45),w,h);r.setPixelRatio(Math.min(devicePixelRatio||1,1.8));r.setSize(w,h)}
+addEventListener('resize',rs);rs();
+// 手势:单指旋转、双指缩放、轻点选中
+const cv=r.domElement,ptr=new Map(),ray=new T.Raycaster();let lp=0,dn=null;
+cv.addEventListener('pointerdown',e=>{cv.setPointerCapture(e.pointerId);ptr.set(e.pointerId,{x:e.clientX,y:e.clientY});if(ptr.size===1)dn={t:performance.now(),m:0};else{dn=null;const a=[...ptr.values()];lp=Math.hypot(a[0].x-a[1].x,a[0].y-a[1].y)}});
+cv.addEventListener('pointermove',e=>{const o=ptr.get(e.pointerId);if(!o)return;const dx=e.clientX-o.x,dy=e.clientY-o.y;o.x=e.clientX;o.y=e.clientY;
+ if(ptr.size>1){const a=[...ptr.values()],d=Math.hypot(a[0].x-a[1].x,a[0].y-a[1].y);if(lp)zoom=cl(zoom*d/lp,.6,2.4);lp=d}
+ else{if(dn)dn.m+=Math.abs(dx)+Math.abs(dy);az-=dx*.008;el=cl(el+dy*.006,-1.5,1.5)}});
+function up(e){if(dn&&ptr.size===1&&dn.m<8&&performance.now()-dn.t<500)pick(e);ptr.delete(e.pointerId);lp=0;dn=null}
+cv.addEventListener('pointerup',up);cv.addEventListener('pointercancel',e=>{ptr.delete(e.pointerId);lp=0;dn=null});
+cv.addEventListener('wheel',e=>{zoom=cl(zoom*(e.deltaY>0?.93:1.07),.6,2.4);e.preventDefault()},{passive:false});
+function pick(e){ray.setFromCamera({x:e.clientX/innerWidth*2-1,y:-(e.clientY/innerHeight)*2+1},camera);
+ const h=ray.intersectObjects(parts.filter(g=>g.visible),true);const hit=h.find(i=>i.object.visible&&(i.object.material.opacity>.3));sel=hit?hit.object.parent:null;refresh()}
+function tick(){requestAnimationFrame(tick);ex+=(exT-ex)*.12;if(Math.abs(exT-ex)<.001)ex=exT;const p=ex*ex*(3-2*ex);parts.forEach(g=>g.position.lerpVectors(g.userData.base,g.userData.exp,p));cam();camera.updateMatrixWorld();
+ if(ol.visible){ol.setFromObject(sel);bx.setFromObject(sel);bx.getCenter(c3);c3.y=bx.max.y;c3.project(camera);const l=$('#lab');l.style.left=(c3.x+1)/2*innerWidth+'px';l.style.top=((1-c3.y)/2*innerHeight-16)+'px'}
+ r.render(scene,camera)}
+refresh();tick();
+}catch(err){console.error(err);showErr('渲染初始化失败(设备可能不支持 WebGL):'+err.message)}
+})();
+</script></body></html>
