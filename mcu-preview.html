@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#0b1016"><title>MCU 3D</title>
+<style>
+:root{color-scheme:dark}*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#0b1016;font-family:system-ui,-apple-system,sans-serif;color:#eaf1f8;touch-action:none}
+#v{display:block;width:100vw;height:100dvh;touch-action:none}
+.ui{position:fixed;left:12px;right:12px;bottom:calc(12px + env(safe-area-inset-bottom));display:flex;gap:8px;align-items:center;justify-content:center;flex-wrap:wrap;pointer-events:none}
+button,.range{pointer-events:auto;background:#17212cdd;border:1px solid #344657;color:#eaf1f8;border-radius:13px;padding:11px 14px;font-size:14px;backdrop-filter:blur(12px)}
+button:active{background:#294052}.range{display:flex;align-items:center;gap:8px;padding:7px 12px;min-width:150px}input{width:105px;accent-color:#b9d9ee}
+.hint{position:fixed;top:calc(12px + env(safe-area-inset-top));left:0;right:0;text-align:center;color:#91a4b7;font-size:12px;letter-spacing:.08em;pointer-events:none}
+#err{display:none;position:fixed;inset:0;place-items:center;padding:28px;text-align:center;color:#dce8f4}
+</style></head>
+<body><canvas id="v"></canvas><div class="hint">MODEL 3 · MOTOR CONTROL UNIT</div>
+<div class="ui"><button id="reset">重置视角</button><button id="case">外壳透明</button><button id="explode">拆解视图</button><label class="range">拆解程度 <input id="amount" type="range" min="0" max="100" value="0"></label></div><div id="err">此设备暂不支持画布渲染，请刷新页面重试。</div>
+<script>
+(()=>{'use strict';
+const canvas=document.getElementById('v'),ctx=canvas.getContext('2d',{alpha:false});if(!ctx){document.getElementById('err').style.display='grid';return}
+let W=0,H=0,dpr=1,rx=-.48,ry=.72,zoom=1,transparent=false,exploded=0,drag=null,lastPinch=0;
+const parts=[];
+function box(name,c,s,mat,opts={}){parts.push({name,c,s,mat,...opts})}
+function build(){
+box('base',[0,0,0],[5.9,.38,3.8],'#35414a',{case:true});
+box('lid',[0,.47,0],[5.85,.42,3.75],'#9ba8b0',{case:true});
+for(let i=0;i<18;i++)box('fin',[-2.55+i*.30,.77,0],[.12,.18,3.1],'#75838d',{case:true});
+for(let x of [-2.55,2.55])for(let z of [-1.45,1.45])box('bolt',[x,.72,z],[.22,.09,.22],'#c7d0d5',{case:true});
+box('pcb',[0,.37,0],[4.65,.13,2.72],'#176b50');
+box('cpu',[-.35,.58,-.15],[1.25,.24,1.05],'#222a31');
+box('cpuTop',[-.35,.715,-.15],[1.08,.05,.88],'#a7b0b4');
+for(let x of [-1.72,-.95,.8,1.58])for(let z of [-.82,.82])box('chip',[x,.55,z],[.42,.15,.36],'#262e35');
+for(let i=0;i<7;i++)box('capacitor',[-2.05+i*.65,.68,-1.04],[.3,.4,.32],i%2?'#d3d8d7':'#b3bec4');
+for(let i=0;i<5;i++)box('copper',[-1.8+i*.88,.53,.3],[.13,.07,1.2],'#c17d43');
+box('power',[1.72,.64,0],[.78,.28,1.55],'#444c53');
+for(let i=0;i<3;i++)box('connector',[-2.65,.28,-.85+i*.8],[.65,.46,.48],'#d0a34e');
+box('lowvolt',[2.65,.3,1.18],[.48,.35,.45],'#d9dfe2');
+box('harness',[2.55,.15,1.18],[.22,.2,.2],'#252a30');
+for(let i=0;i<6;i++)box('pin',[2.67,.32,.98+i*.08],[.04,.22,.035],'#c6cdd2');
+}
+build();
+function resize(){dpr=Math.min(devicePixelRatio||1,1.65);W=innerWidth;H=innerHeight;canvas.width=Math.round(W*dpr);canvas.height=Math.round(H*dpr);canvas.style.width=W+'px';canvas.style.height=H+'px';draw()}
+function project(p){let [x,y,z]=p,cy=Math.cos(ry),sy=Math.sin(ry),cx=Math.cos(rx),sx=Math.sin(rx);let x1=x*cy-z*sy,z1=x*sy+z*cy,y1=y*cx-z1*sx,z2=y*sx+z1*cx;let scale=Math.min(W/9.5,H/7.8)*zoom;let f=9/(9+z2*.15);return [W/2+x1*scale*f,H*.47-y1*scale*f,z2]}
+function shade(hex,k){let n=parseInt(hex.slice(1),16),r=Math.min(255,((n>>16)&255)*k),g=Math.min(255,((n>>8)&255)*k),b=Math.min(255,(n&255)*k);return 'rgb('+r+','+g+','+b+')'}
+function drawBox(p){let [x,y,z]=p.c,[a,b,c]=p.s;let lift=exploded*(p.case?1.25:(p.name==='pcb'?-.1: p.name==='connector'?-.8:.85));let center=[x,y+lift,z];let v=[[-a/2,-b/2,-c/2],[a/2,-b/2,-c/2],[a/2,b/2,-c/2],[-a/2,b/2,-c/2],[-a/2,-b/2,c/2],[a/2,-b/2,c/2],[a/2,b/2,c/2],[-a/2,b/2,c/2]].map(q=>project([q[0]+center[0],q[1]+center[1],q[2]+center[2]]));
+let faces=[[0,1,2,3,1.08],[4,7,6,5,.78],[0,4,5,1,.9],[3,2,6,7,1.16],[0,3,7,4,.68],[1,5,6,2,.95]];
+faces.sort((u,vv)=>u.reduce((s,i)=>s+v[i][2],0)-vv.reduce((s,i)=>s+v[i][2],0));
+for(let f of faces){ctx.beginPath();ctx.moveTo(v[f[0]][0],v[f[0]][1]);for(let i=1;i<4;i++)ctx.lineTo(v[f[i]][0],v[f[i]][1]);ctx.closePath();ctx.fillStyle=shade(p.mat,f[4]);ctx.fill();ctx.strokeStyle='rgba(10,17,23,.38)';ctx.lineWidth=.7;ctx.stroke()}
+}
+function draw(){if(!ctx||!W||!H)return;ctx.setTransform(dpr,0,0,dpr,0,0);let g=ctx.createLinearGradient(0,0,W,H);g.addColorStop(0,'#111a24');g.addColorStop(1,'#080c11');ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
+ctx.save();ctx.translate(W/2,H*.5);ctx.scale(1,1);ctx.restore();
+ctx.strokeStyle='rgba(130,160,185,.07)';ctx.lineWidth=1;for(let i=0;i<12;i++){let y=H*.18+i*H*.055;ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke()}
+const sorted=[...parts].sort((a,b)=>project([a.c[0],a.c[1],a.c[2]])[2]-project([b.c[0],b.c[1],b.c[2]])[2]);
+for(const p of sorted){if(transparent&&p.case){if(p.name!=='base'&&p.name!=='lid')continue;p.mat='#748895';}drawBox(p)}
+ctx.fillStyle='rgba(0,0,0,.18)';ctx.beginPath();ctx.ellipse(W/2,H*.78,Math.min(W*.34,190),Math.min(H*.045,30),0,0,Math.PI*2);ctx.fill();
+}
+function reset(){rx=-.48;ry=.72;zoom=1;exploded=0;document.getElementById('amount').value=0;transparent=false;document.getElementById('case').textContent='外壳透明';draw()}
+document.getElementById('reset').onclick=reset;
+document.getElementById('case').onclick=()=>{transparent=!transparent;document.getElementById('case').textContent=transparent?'恢复外壳':'外壳透明';draw()};
+document.getElementById('explode').onclick=()=>{exploded=exploded?0:.65;document.getElementById('amount').value=Math.round(exploded/1.2*100);draw()};
+document.getElementById('amount').oninput=e=>{exploded=Number(e.target.value)/100*1.2;draw()};
+canvas.addEventListener('pointerdown',e=>{drag={x:e.clientX,y:e.clientY,rx,ry};canvas.setPointerCapture(e.pointerId)});
+canvas.addEventListener('pointermove',e=>{if(!drag)return;ry=drag.ry+(e.clientX-drag.x)*.008;rx=Math.max(-1.35,Math.min(1.25,drag.rx+(e.clientY-drag.y)*.008));draw()});
+canvas.addEventListener('pointerup',()=>drag=null);canvas.addEventListener('pointercancel',()=>drag=null);
+canvas.addEventListener('wheel',e=>{zoom=Math.max(.55,Math.min(1.8,zoom-e.deltaY*.001));draw()},{passive:true});
+let touchStart=null;canvas.addEventListener('touchstart',e=>{if(e.touches.length===2)lastPinch=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY)},{passive:true});
+canvas.addEventListener('touchmove',e=>{if(e.touches.length===2){let d=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);if(lastPinch)zoom=Math.max(.55,Math.min(1.8,zoom+(d-lastPinch)*.004));lastPinch=d;draw()}},{passive:true});
+addEventListener('resize',resize);resize();
+})();</script></body></html>
