@@ -6,39 +6,24 @@
 <meta name="theme-color" content="#0a1017">
 <title>MCU 3D</title>
 <style>
-*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#0a1017;color:#e8f1f5;font-family:system-ui,sans-serif;touch-action:none}
-body{background:radial-gradient(ellipse at 50% 40%,#253946 0,#121e28 48%,#080d13 100%)}
-.stage{position:absolute;inset:0;perspective:1000px;overflow:hidden;touch-action:none}
-.world{position:absolute;left:50%;top:45%;width:0;height:0;transform-style:preserve-3d;transform:rotateX(-26deg) rotateY(-34deg) scale(.82);will-change:transform}
-.part{position:absolute;left:0;top:0;transform-style:preserve-3d;will-change:transform}
-.face{position:absolute;backface-visibility:hidden;border:1px solid #0003;box-shadow:inset 0 0 0 1px #ffffff08}
-.front,.back{left:0;top:0;width:var(--w);height:var(--h)}
-.front{transform:translateZ(calc(var(--d)/2))}
-.back{transform:rotateY(180deg) translateZ(calc(var(--d)/2));filter:brightness(.68)}
-.right,.left{left:0;top:0;width:var(--d);height:var(--h)}
-.right{left:calc((var(--w) - var(--d))/2);transform:rotateY(90deg) translateZ(calc(var(--w)/2));filter:brightness(.78)}
-.left{left:calc((var(--w) - var(--d))/2);transform:rotateY(-90deg) translateZ(calc(var(--w)/2));filter:brightness(.62)}
-.top,.bottom{left:0;top:calc((var(--h) - var(--d))/2);width:var(--w);height:var(--d)}
-.top{transform:rotateX(90deg) translateZ(calc(var(--h)/2));filter:brightness(1.12)}
-.bottom{transform:rotateX(-90deg) translateZ(calc(var(--h)/2));filter:brightness(.55)}
-.wire .face{background:transparent!important;border:1px solid #a7ffe0!important;box-shadow:none}
-.controls{position:fixed;z-index:3;left:50%;bottom:calc(20px + env(safe-area-inset-bottom));transform:translateX(-50%);display:flex;gap:12px}
-button{width:48px;height:48px;border-radius:50%;border:1px solid #536b78;background:#101a24e8;color:#dce9ee;font:22px/1 system-ui,sans-serif;box-shadow:0 6px 24px #0007;touch-action:manipulation}
-button.active{border-color:#6ee7c8;color:#8ef4d9;background:#15372f}
-.hint{position:fixed;top:calc(14px + env(safe-area-inset-top));left:0;right:0;text-align:center;color:#c7d7df88;font-size:12px;pointer-events:none}
+*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#080d13;overscroll-behavior:none}body{background:radial-gradient(ellipse at 50% 38%,#253947 0,#121e29 48%,#080d13 100%);touch-action:none}canvas{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none}.controls{position:fixed;z-index:2;left:50%;bottom:calc(18px + env(safe-area-inset-bottom));transform:translateX(-50%);display:flex;gap:12px}.controls button{width:48px;height:48px;border-radius:50%;border:1px solid #536b78;background:#101a24e8;color:#dce9ee;font:22px/1 system-ui,sans-serif;box-shadow:0 6px 24px #0007;touch-action:manipulation}.controls button.active{border-color:#6ee7c8;color:#8ef4d9;background:#15372f}.fallback{position:fixed;inset:0;display:none;place-items:center;color:#c6d5dc;font:14px system-ui,sans-serif;text-align:center;padding:28px}.fallback.show{display:grid}
 </style></head>
 <body>
-<div class="stage" id="stage"><div class="world" id="world"></div></div>
-<div class="hint">拖动旋转 · 双指缩放</div>
-<div class="controls"><button id="explode" class="active" aria-label="爆炸视图">⤢</button><button id="wire" aria-label="线框">▦</button><button id="reset" aria-label="复位">↺</button></div>
+<canvas id="view" aria-label="Interactive 3D MCU"></canvas>
+<div class="controls"><button id="explode" class="active" aria-label="Exploded view">⤢</button><button id="wire" aria-label="Wireframe">▦</button><button id="reset" aria-label="Reset view">↺</button></div>
+<div class="fallback" id="fallback">此浏览器无法绘制模型，请用系统浏览器打开。</div>
 <script>
 (function(){
 'use strict';
-var world=document.getElementById('world'),stage=document.getElementById('stage'),unit=43,parts=[];
-var C={al:'#8798a1',silver:'#c5d0d4',dark:'#202c35',rubber:'#11171c',pcb:'#08734b',green:'#16845b',gold:'#c7953e',copper:'#a9572c',chip:'#263740',chipTop:'#65747a',ceramic:'#bdbdaf',blue:'#2e5065'};
-function add(x,y,z,sx,sy,sz,color,group){parts.push({x:x,y:y,z:z,sx:sx,sy:sy,sz:sz,color:color,group:group||'fixed'});}
+var canvas=document.getElementById('view'),ctx=canvas.getContext&&canvas.getContext('2d'),fallback=document.getElementById('fallback');
+if(!ctx){fallback.classList.add('show');return;}
+var yaw=-.62,pitch=.52,zoom=1,exploded=true,wire=false,pts={},last=null,pinch=0,startZoom=zoom,dpr=1,w=1,h=1;
+var C={al:'#8c9ca4',silver:'#c9d3d7',dark:'#202b34',rubber:'#11171c',pcb:'#087149',green:'#16845b',gold:'#c7953e',copper:'#a9572c',chip:'#263740',chipTop:'#65747a',ceramic:'#bdbdaf',blue:'#2e5065'};
+var objects=[];
+function add(x,y,z,sx,sy,sz,color,group){objects.push({p:[x,y,z],s:[sx,sy,sz],c:color,g:group||'fixed'});}
 add(0,-.42,0,5.7,.38,3.65,C.al,'base');add(0,-.22,0,5.35,.12,3.3,C.dark,'base');
 for(var i=0;i<13;i++)add(-2.45+i*.408,-.19,0,.075,.035,2.85,C.silver,'base');
+for(i=0;i<8;i++)add(-2.84,-.39,-1.35+i*.385,.12,.17,.045,C.dark,'base');
 add(0,-.015,0,4.55,.12,2.55,C.pcb,'board');
 for(i=0;i<13;i++)add(-1.95+i*.325,.052,0,.026,.009,1.95,C.copper,'board');
 for(i=0;i<7;i++)add(0,.055,-.9+i*.3,3.8,.009,.022,C.copper,'board');
@@ -51,18 +36,37 @@ for(i=0;i<3;i++){z=-.72+i*.72;add(2.45,-.12,z,.6,.46,.45,C.dark,'connectors');ad
 add(-2.42,-.12,.95,.5,.36,.32,C.dark,'connectors');for(i=0;i<8;i++)add(-2.7,-.12,.72+i*.065,.13,.06,.032,C.gold,'connectors');
 add(0,1.05,0,5.52,.16,3.48,C.al,'lid');add(0,.91,0,4.9,.025,2.9,C.rubber,'seal');
 for(i=0;i<5;i++)for(j=0;j<2;j++)add(-2.25+i*1.125,1.145,j?1.35:-1.35,.14,.055,.14,C.silver,'lid');
-function make(p){var el=document.createElement('div');el.className='part';el.style.setProperty('--w',(p.sx*unit)+'px');el.style.setProperty('--h',(p.sy*unit)+'px');el.style.setProperty('--d',(p.sz*unit)+'px');var y=-p.y*unit,z=p.z*unit,x=p.x*unit;el.dataset.group=p.group;el.dataset.x=x;el.dataset.y=y;el.dataset.z=z;el.style.width=(p.sx*unit)+'px';el.style.height=(p.sy*unit)+'px';el.style.transform='translate3d('+x+'px,'+y+'px,'+z+'px) translate(-50%,-50%)';['front','back','right','left','top','bottom'].forEach(function(face){var f=document.createElement('div');f.className='face '+face;f.style.background=p.color;el.appendChild(f);});world.appendChild(el);p.el=el;}
-parts.forEach(make);
-var yaw=-34,pitch=-26,zoom=.82,exploded=true,wire=false,points=new Map(),last=null,pinch=0,startZoom=zoom;
-function render(){world.style.transform='rotateX('+pitch+'deg) rotateY('+yaw+'deg) scale('+zoom+')';parts.forEach(function(p){var dy=0;if(exploded){if(p.group==='lid')dy=-1.15*unit;else if(p.group==='seal')dy=-.72*unit;else if(p.group==='compute')dy=-.38*unit;else if(p.group==='power')dy=-.25*unit;else if(p.group==='connectors')dy=-.18*unit;else if(p.group==='board')dy=-.08*unit;else if(p.group==='base')dy=.3*unit;}p.el.style.transform='translate3d('+p.el.dataset.x+'px,'+(Number(p.el.dataset.y)+dy)+'px,'+p.el.dataset.z+'px) translate(-50%,-50%)';});}
-function distance(){var a=Array.from(points.values());return a.length<2?0:Math.hypot(a[0].x-a[1].x,a[0].y-a[1].y);}
-stage.addEventListener('pointerdown',function(e){stage.setPointerCapture(e.pointerId);points.set(e.pointerId,{x:e.clientX,y:e.clientY});last={x:e.clientX,y:e.clientY};if(points.size===2){pinch=distance();startZoom=zoom;}});
-stage.addEventListener('pointermove',function(e){if(!points.has(e.pointerId))return;points.set(e.pointerId,{x:e.clientX,y:e.clientY});if(points.size>1){var d=distance();if(pinch>0)zoom=Math.max(.48,Math.min(1.5,startZoom*d/pinch));}else if(last){yaw+=(e.clientX-last.x)*.55;pitch=Math.max(-75,Math.min(75,pitch+(e.clientY-last.y)*.45));}last={x:e.clientX,y:e.clientY};render();});
-function end(e){points.delete(e.pointerId);if(points.size<2)pinch=0;last=points.size?Array.from(points.values())[0]:null;}
-stage.addEventListener('pointerup',end);stage.addEventListener('pointercancel',end);
-document.getElementById('explode').addEventListener('click',function(){exploded=!exploded;this.classList.toggle('active',exploded);render();});
-document.getElementById('wire').addEventListener('click',function(){wire=!wire;world.classList.toggle('wire',wire);this.classList.toggle('active',wire);});
-document.getElementById('reset').addEventListener('click',function(){yaw=-34;pitch=-26;zoom=.82;exploded=true;wire=false;world.classList.remove('wire');document.getElementById('explode').classList.add('active');document.getElementById('wire').classList.remove('active');render();});
-render();
+var faces=[
+ {v:[0,1,3,2],n:[0,0,1],b:1.0},{v:[5,4,6,7],n:[0,0,-1],b:.56},
+ {v:[4,0,2,6],n:[-1,0,0],b:.68},{v:[1,5,7,3],n:[1,0,0],b:.78},
+ {v:[2,3,7,6],n:[0,1,0],b:1.12},{v:[4,5,1,0],n:[0,-1,0],b:.48}
+];
+function rotate(v){var cy=Math.cos(yaw),sy=Math.sin(yaw),cx=Math.cos(pitch),sx=Math.sin(pitch);var xx=v[0]*cy+v[2]*sy,zz=-v[0]*sy+v[2]*cy;return [xx,v[1]*cx-zz*sx,v[1]*sx+zz*cx];}
+function shade(hex,f){var n=parseInt(hex.slice(1),16),r=Math.min(255,Math.round(((n>>16)&255)*f)),g=Math.min(255,Math.round(((n>>8)&255)*f)),b=Math.min(255,Math.round((n&255)*f));return 'rgb('+r+','+g+','+b+')';}
+function resize(){dpr=Math.min(window.devicePixelRatio||1,1.5);w=Math.max(1,Math.floor(innerWidth*dpr));h=Math.max(1,Math.floor(innerHeight*dpr));if(canvas.width!==w||canvas.height!==h){canvas.width=w;canvas.height=h;}canvas.style.width=innerWidth+'px';canvas.style.height=innerHeight+'px';ctx.setTransform(dpr,0,0,dpr,0,0);draw();}
+function draw(){
+ var W=innerWidth,H=innerHeight;ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,W,H);
+ var scale=Math.min(W/8.8,H/9.7)*zoom, focal=Math.min(W,H)*1.8;
+ var all=[];
+ objects.forEach(function(o){
+  var dy=0;if(exploded){if(o.g==='lid')dy=1.15;else if(o.g==='seal')dy=.72;else if(o.g==='compute')dy=.38;else if(o.g==='power')dy=.25;else if(o.g==='connectors')dy=.18;else if(o.g==='board')dy=.08;else if(o.g==='base')dy=-.3;}
+  var sx=o.s[0]/2,sy=o.s[1]/2,sz=o.s[2]/2,cx=o.p[0],cy=o.p[1]+dy,cz=o.p[2];
+  var raw=[[-sx,-sy,-sz],[sx,-sy,-sz],[-sx,sy,-sz],[sx,sy,-sz],[-sx,-sy,sz],[sx,-sy,sz],[-sx,sy,sz],[sx,sy,sz]];
+  var v=raw.map(function(q){var r=rotate([q[0]+cx,q[1]+cy,q[2]+cz]);return {x:W/2+r[0]*focal/(focal/scale+r[2]*scale),y:H*.46-r[1]*focal/(focal/scale+r[2]*scale),z:r[2]};});
+  faces.forEach(function(f){var av=f.v.reduce(function(a,id){return a+v[id].z;},0)/4;all.push({v:f.v.map(function(id){return v[id];}),z:av,c:o.c,b:f.b});});
+ });
+ all.sort(function(a,b){return a.z-b.z;});
+ all.forEach(function(f){ctx.beginPath();ctx.moveTo(f.v[0].x,f.v[0].y);for(var i=1;i<f.v.length;i++)ctx.lineTo(f.v[i].x,f.v[i].y);ctx.closePath();if(wire){ctx.strokeStyle='#8ef4d9';ctx.lineWidth=1;ctx.stroke();}else{ctx.fillStyle=shade(f.c,f.b);ctx.fill();ctx.strokeStyle='#07101755';ctx.lineWidth=.65;ctx.stroke();}});
+}
+function dist(){var a=Object.keys(pts).map(function(k){return pts[k];});return a.length<2?0:Math.hypot(a[0].x-a[1].x,a[0].y-a[1].y);}
+canvas.addEventListener('pointerdown',function(e){try{canvas.setPointerCapture(e.pointerId);}catch(_){}pts[e.pointerId]={x:e.clientX,y:e.clientY};last={x:e.clientX,y:e.clientY};if(Object.keys(pts).length===2){pinch=dist();startZoom=zoom;}});
+canvas.addEventListener('pointermove',function(e){if(!pts[e.pointerId])return;pts[e.pointerId]={x:e.clientX,y:e.clientY};if(Object.keys(pts).length>1){var d=dist();if(pinch>0)zoom=Math.max(.55,Math.min(1.6,startZoom*d/pinch));}else if(last){yaw+=(e.clientX-last.x)*.009;pitch=Math.max(-1.05,Math.min(1.15,pitch+(e.clientY-last.y)*.008));}last={x:e.clientX,y:e.clientY};draw();});
+function end(e){delete pts[e.pointerId];if(Object.keys(pts).length<2)pinch=0;last=null;}
+canvas.addEventListener('pointerup',end);canvas.addEventListener('pointercancel',end);
+canvas.addEventListener('wheel',function(e){e.preventDefault();zoom=Math.max(.55,Math.min(1.6,zoom-e.deltaY*.001));draw();},{passive:false});
+document.getElementById('explode').addEventListener('click',function(){exploded=!exploded;this.classList.toggle('active',exploded);draw();});
+document.getElementById('wire').addEventListener('click',function(){wire=!wire;this.classList.toggle('active',wire);draw();});
+document.getElementById('reset').addEventListener('click',function(){yaw=-.62;pitch=.52;zoom=1;exploded=true;wire=false;document.getElementById('explode').classList.add('active');document.getElementById('wire').classList.remove('active');draw();});
+window.addEventListener('resize',resize);resize();
 })();
 </script></body></html>
