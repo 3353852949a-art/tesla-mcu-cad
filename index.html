@@ -15,8 +15,36 @@ header{position:absolute;top:0;left:0;right:0;padding:calc(14px + env(safe-area-
 <div class="row"><button class="btn active" data-part="all">全部</button><button class="btn" data-part="housing">壳体</button><button class="btn" data-part="power">功率模块</button><button class="btn" data-part="pcb">控制板</button><button class="btn" data-part="bus">铜排</button></div>
 <div class="row" style="align-items:center"><span class="label">EXPLODE</span><input class="range" id="amount" type="range" min="0" max="100" value="0" aria-label="拆解程度"><span id="pct" style="font-size:10px;color:#9eb1c2;min-width:28px;text-align:right">0%</span></div>
 <div class="sub" style="margin:9px 1px 0"><span>比例与内部布局为示意</span><span>MCU / INVERTER</span></div></section>
-<script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js" onerror="this.onerror=null;this.src='https://unpkg.com/three@0.160.0/build/three.min.js'"></script>
 <script>
+(function(){
+  const sources = [
+    'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js',
+    'https://unpkg.com/three@0.160.0/build/three.min.js'
+  ];
+  const host = document.querySelector('#view');
+  function showError(message){
+    host.innerHTML = '<div style="padding:25vh 24px;text-align:center;color:#dbe7f1;line-height:1.8">' + message + '<br><button onclick="location.reload()" style="margin-top:14px;padding:10px 16px;border-radius:10px;border:1px solid #526273;background:#1b2632;color:#edf3f8">重新加载</button></div>';
+  }
+  function load(index){
+    if(index >= sources.length){
+      showError('3D 引擎加载失败。请检查网络，或尝试切换网络后重新加载。');
+      return;
+    }
+    const script = document.createElement('script');
+    script.src = sources[index];
+    script.onload = function(){
+      try {
+        if (!window.THREE) throw new Error('Three.js 未初始化');
+        startScene();
+      } catch (error) {
+        console.error('MCU 3D scene failed:', error);
+        showError('3D 场景初始化失败，请重新加载页面。');
+      }
+    };
+    script.onerror = function(){ script.remove(); load(index + 1); };
+    document.head.appendChild(script);
+  }
+  function startScene(){
 (()=>{const host=document.querySelector('#view');if(!window.THREE){host.innerHTML='<div style="padding:30vh 24px;text-align:center;color:#dbe7f1">3D 引擎加载失败，请检查网络后刷新。</div>';return}
 const scene=new THREE.Scene();scene.background=new THREE.Color('#0c1117');scene.fog=new THREE.Fog('#0c1117',17,32);
 const camera=new THREE.PerspectiveCamera(36,innerWidth/innerHeight,.1,100);camera.position.set(8,6.4,9);
@@ -74,5 +102,9 @@ renderer.domElement.addEventListener('pointerdown',e=>{drag=true;lastX=e.clientX
 let prevPinch=0;renderer.domElement.addEventListener('touchmove',e=>{if(e.touches.length===2){let d=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);if(prevPinch){dist=Math.max(6,Math.min(22,dist+(prevPinch-d)*.025));camPos.normalize().multiplyScalar(dist)}prevPinch=d}},{passive:true});renderer.domElement.addEventListener('touchend',()=>prevPinch=0);
 function resize(){camera.aspect=innerWidth/innerHeight;camera.fov=innerWidth<600?42:36;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);renderer.setPixelRatio(Math.min(devicePixelRatio,2))}addEventListener('resize',resize);
 function animate(){requestAnimationFrame(animate);Object.keys(groups).forEach(k=>{let d=explodeDirs[k];groups[k].position.set(base[k].x+d.x*explode,base[k].y+d.y*explode,base[k].z+d.z*explode)});camera.position.lerp(camPos,.12);camera.lookAt(target);renderer.render(scene,camera)}setView('iso');animate();ui();
+})();
+
+  }
+  load(0);
 })();
 </script></body></html>
