@@ -1,130 +1,93 @@
 <!doctype html>
 <html lang="zh-CN">
 <head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"><meta name="theme-color" content="#050b12">
-<title>Tesla Model 3 MCU · Interactive 3D CAD</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="theme-color" content="#10171f">
+<title>MCU / CAD · Interactive 3D Assembly</title>
 <style>
-:root{color-scheme:dark;--bg:#050b12;--panel:#0a1522eF;--line:#193650;--text:#e8f3ff;--muted:#91a9bf;--blue:#1687f8;--orange:#ff812b}
-*{box-sizing:border-box}html,body{margin:0;min-height:100%;background:var(--bg);color:var(--text);font-family:Inter,system-ui,-apple-system,"Segoe UI",sans-serif}body{background:radial-gradient(ellipse at 50% 35%,#132538 0,#07101b 48%,#03070c 100%);overflow-x:hidden}
-header{height:58px;display:flex;align-items:center;gap:12px;padding:10px 18px;border-bottom:1px solid #183149;background:#030912d9;position:relative;z-index:3}.logo{font-size:29px;font-weight:900;letter-spacing:-.12em;transform:scaleX(1.3);margin-right:8px}.brand{font-size:11px;letter-spacing:.22em;color:#b5c8d9}.title{font-size:17px;font-weight:650;margin-top:3px}.tag{margin-left:auto;border:1px solid #254660;border-radius:99px;padding:6px 10px;font-size:10px;color:#8ebce2;white-space:nowrap}
-.layout{display:grid;grid-template-columns:124px minmax(0,1fr) 220px;grid-template-rows:minmax(390px,58vh) minmax(340px,42vh);gap:0 12px;padding:12px;max-width:1600px;margin:auto}.tools{grid-column:1;grid-row:1;display:flex;flex-direction:column;gap:6px;z-index:2}.tool,.btn{border:1px solid #18354e;background:linear-gradient(135deg,#0c1a29,#07111c);color:#dbeeff;border-radius:10px;padding:10px 9px;font-size:12px;min-height:42px;cursor:pointer}.tool{display:flex;align-items:center;gap:9px;text-align:left}.tool .ico{font-size:18px;width:22px;text-align:center}.tool.active,.btn.active,.btn.primary{background:linear-gradient(135deg,#147ce2,#0751a1);border-color:#278cf5;color:white;box-shadow:0 0 18px #0879e526}
-.stage{position:relative;grid-column:2;grid-row:1;min-width:0;min-height:0;border:1px solid #142b40;border-radius:15px;overflow:hidden;background:radial-gradient(ellipse at 50% 48%,#192b3a 0,#09121d 57%,#040a10 100%)}.stage canvas,.explosion canvas{width:100%;height:100%;display:block;touch-action:none}.stage-label{position:absolute;top:13px;left:15px;font-size:10px;letter-spacing:.18em;color:#a4bfd5;pointer-events:none}.stage-hint{position:absolute;bottom:12px;left:50%;transform:translateX(-50%);white-space:nowrap;border:1px solid #23425a;border-radius:99px;padding:8px 12px;background:#06111dcc;color:#c5d8e8;font-size:11px;pointer-events:none}
-.parts{grid-column:3;grid-row:1;display:flex;flex-direction:column;gap:5px;min-height:0;background:#071321d9;border:1px solid #16334b;border-radius:14px;padding:11px;overflow:auto}.panel-title{font-size:13px;font-weight:700;margin:0 0 5px}.part{display:flex;align-items:center;gap:8px;border-bottom:1px solid #132a3e;padding:6px 1px;min-height:43px}.swatch{width:43px;height:34px;flex:none;border-radius:6px;border:1px solid #29445a;display:grid;place-items:center;font-size:20px;background:linear-gradient(145deg,#314354,#0b1723)}.part-name{font-size:12px;flex:1;color:#d6e7f6}.eye{background:none;border:0;color:#91cfff;font-size:18px;padding:4px;cursor:pointer}
-.controls{grid-column:1;grid-row:2;align-self:start;background:#081421ed;border:1px solid #183650;border-radius:13px;padding:12px;margin-top:10px}.control-label{font-size:12px;font-weight:700;margin-bottom:9px}.range{width:100%;accent-color:#1687f8}.pct{float:right;color:#9fc9ed;font-size:11px}.check{display:flex;align-items:center;gap:8px;font-size:12px;margin:9px 0;color:#cbddec}.check input{accent-color:#1687f8;width:17px;height:17px}
-.explosion{grid-column:2;grid-row:2;position:relative;min-height:0;margin-top:10px;border:1px solid #142b40;border-radius:15px;overflow:hidden;background:radial-gradient(ellipse at 50% 50%,#172737 0,#07111b 67%,#040a10 100%)}.explosion-title{position:absolute;top:12px;left:14px;font-size:10px;letter-spacing:.18em;color:#a4bfd5;pointer-events:none}.detail{grid-column:3;grid-row:2;align-self:start;margin-top:10px;padding:12px;border:1px solid #183650;border-radius:13px;background:#081421ed}.detail-visual{height:130px;border-radius:8px;background:linear-gradient(135deg,#182b3b,#050b12);display:grid;place-items:center;font-size:56px;margin:9px 0}.detail p{font-size:12px;line-height:1.65;color:#abc0d2;margin:6px 0}.views{display:flex;gap:5px;position:absolute;left:12px;bottom:12px;flex-wrap:wrap;z-index:2}.views .btn{min-height:34px;padding:7px 10px;font-size:11px}.bottom-actions{display:flex;gap:6px;margin-top:10px}.bottom-actions .btn{flex:1;padding:8px 5px;font-size:11px}.status{font-size:10px;color:#86d5ad;display:flex;align-items:center;gap:6px;margin-bottom:8px}.dot{width:6px;height:6px;border-radius:50%;background:#6bdba4;box-shadow:0 0 8px #6bdba4}
-@media(max-width:760px){header{height:55px;padding:8px 12px}.logo{font-size:25px}.title{font-size:14px}.brand{font-size:9px}.tag{font-size:9px;padding:5px 7px}.layout{display:grid;grid-template-columns:minmax(0,1fr);grid-template-rows:42vh auto 34vh auto auto;gap:9px;padding:8px}.tools{grid-column:1;grid-row:2;flex-direction:row;overflow-x:auto;padding-bottom:2px}.tool{min-width:86px;justify-content:center;flex-direction:column;gap:3px;padding:7px 8px;font-size:10px;min-height:58px}.tool .ico{font-size:17px}.stage{grid-column:1;grid-row:1;min-height:260px}.parts{grid-column:1;grid-row:3;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));align-content:start;max-height:34vh}.parts .panel-title{grid-column:1/-1}.part{min-width:0}.swatch{width:34px;height:29px;font-size:16px}.part-name{font-size:11px}.controls{grid-column:1;grid-row:4;margin:0}.explosion{grid-column:1;grid-row:5;height:34vh;margin:0}.detail{grid-column:1;grid-row:6;margin:0;display:grid;grid-template-columns:90px 1fr;column-gap:10px}.detail .panel-title{grid-column:1/-1}.detail-visual{height:90px;font-size:40px}.detail p{margin:4px 0}.views{left:8px;bottom:8px;gap:4px}.views .btn{font-size:10px;padding:6px 8px;min-height:30px}.stage-hint{font-size:10px;bottom:8px}.bottom-actions{margin-top:8px}}
-@media(max-width:380px){.tag{display:none}.layout{grid-template-rows:40vh auto 36vh auto auto}.tool{min-width:76px}.parts{grid-template-columns:1fr 1fr}.part-name{font-size:10px}}
+:root{color-scheme:dark;--bg:#10171f;--panel:#111a23ed;--line:#34424e;--text:#e5edf5;--muted:#8294a5;--mint:#91d1c5}
+*{box-sizing:border-box}html,body{margin:0;width:100%;min-height:100%;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,"Segoe UI",sans-serif}body{overflow:hidden}
+header{height:58px;display:flex;align-items:center;justify-content:space-between;padding:0 14px;border-bottom:1px solid #34404d;background:#0c1117;position:relative;z-index:2}.brand{letter-spacing:.18em;font-weight:700}.mark{border:1px solid #8ebeb8;border-radius:8px;padding:5px;margin-right:8px;color:#9ad5cc}.subtitle{font-size:11px;color:#8295a8}
+main{height:calc(100dvh - 58px);min-height:440px;position:relative;background:radial-gradient(ellipse at 50% 42%,#1b2b39,#10171f 68%)}#stage{position:absolute;inset:0}canvas{width:100%;height:100%;display:block;touch-action:none}
+.views{position:absolute;top:14px;right:12px;display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;z-index:3;max-width:85%}
+button{background:#17222d;color:#dce8f1;border:1px solid #435260;border-radius:12px;padding:9px 11px;font-size:12px;cursor:pointer;min-height:38px}button:active,button.active{background:#2c4c56;border-color:#91d1c5}
+.hint{position:absolute;top:65px;left:12px;font-size:11px;color:#9cabb9;background:#111a23b8;border:1px solid #2a3b48;padding:7px 10px;border-radius:10px;pointer-events:none}
+.panel{position:absolute;bottom:12px;left:12px;right:12px;padding:12px;border:1px solid #34424e;border-radius:18px;background:#111a23ed;z-index:3;max-width:680px;margin:auto;backdrop-filter:blur(8px)}
+.row{display:flex;align-items:center;gap:10px}.row+.row{margin-top:10px}.label{font-size:12px;min-width:66px}.range{flex:1;min-width:60px;accent-color:#91d1c5}.pct{font-size:12px;min-width:32px;text-align:right;color:#b7dcd5}.actions{display:flex;gap:8px;flex-wrap:wrap}.actions button{flex:1;min-width:95px}.note{font-size:11px;color:#8294a5;margin-top:8px}.error{position:absolute;top:45%;left:16px;right:16px;text-align:center;color:#c5d4df;background:#111a23d9;padding:12px;border-radius:10px}
+@media(min-width:800px){.panel{left:50%;right:auto;transform:translateX(-50%);width:min(680px,calc(100% - 24px))}.views{right:max(12px,calc((100% - 1100px)/2))}header{padding:0 max(14px,calc((100% - 1100px)/2))}}
 </style>
 </head>
 <body>
-<header><div class="logo">T</div><div><div class="brand">T E S L A</div><div class="title">Model 3 电机控制器 MCU</div></div><div class="tag">INTERACTIVE 3D · CONCEPT MODEL</div></header>
-<main class="layout">
-<nav class="tools" aria-label="模型工具">
-<button class="tool active" data-tool="assembly"><span class="ico">⬡</span>整机</button><button class="tool" data-tool="explode"><span class="ico">▱</span>拆解</button><button class="tool" id="transparency"><span class="ico">◉</span>透明</button><button class="tool" id="wireframe"><span class="ico">◇</span>线框</button><button class="tool" id="partFocus"><span class="ico">⌗</span>零件选择</button><button class="tool" data-view="iso"><span class="ico">◎</span>视角切换</button><button class="tool" id="reset"><span class="ico">⚙</span>复位</button>
-</nav>
-<section class="stage"><div class="stage-label">MCU / COMPLETE ASSEMBLY</div><div id="main3d" style="position:absolute;inset:0"></div><div class="stage-hint">单指旋转　双指缩放　拖动平移</div><div class="views"><button class="btn active" data-view="iso">等轴测</button><button class="btn" data-view="front">正视</button><button class="btn" data-view="side">侧视</button><button class="btn" data-view="top">俯视</button><button class="btn" data-view="bottom">底视</button></div></section>
-<aside class="parts"><h2 class="panel-title">零件列表 / COMPONENTS</h2>
-<div class="part" data-key="lid"><div class="swatch">▤</div><span class="part-name">上盖</span><button class="eye" aria-label="显示或隐藏上盖">◉</button></div>
-<div class="part" data-key="seal"><div class="swatch">◇</div><span class="part-name">密封垫</span><button class="eye" aria-label="显示或隐藏密封垫">◉</button></div>
-<div class="part" data-key="power"><div class="swatch">▦</div><span class="part-name">功率模块</span><button class="eye" aria-label="显示或隐藏功率模块">◉</button></div>
-<div class="part" data-key="baseplate"><div class="swatch">▤</div><span class="part-name">散热底板</span><button class="eye" aria-label="显示或隐藏散热底板">◉</button></div>
-<div class="part" data-key="caps"><div class="swatch">▥</div><span class="part-name">直流电容</span><button class="eye" aria-label="显示或隐藏直流电容">◉</button></div>
-<div class="part" data-key="pcb"><div class="swatch">▧</div><span class="part-name">控制板</span><button class="eye" aria-label="显示或隐藏控制板">◉</button></div>
-<div class="part" data-key="bus"><div class="swatch">⌁</div><span class="part-name">铜排</span><button class="eye" aria-label="显示或隐藏铜排">◉</button></div>
-<div class="part" data-key="housing"><div class="swatch">▱</div><span class="part-name">下壳体</span><button class="eye" aria-label="显示或隐藏下壳体">◉</button></div>
-</aside>
-<section class="controls"><div class="status"><i class="dot"></i> 3D 场景运行中 <span id="statusText" style="margin-left:auto;color:#8fb4d4">READY</span></div><div class="control-label">拆解程度 <span class="pct" id="pct">0%</span></div><input class="range" id="amount" type="range" min="0" max="100" value="0" aria-label="拆解程度">
-<div id="checks"><label class="check"><input type="checkbox" data-check="lid" checked>上盖</label><label class="check"><input type="checkbox" data-check="seal" checked>密封垫</label><label class="check"><input type="checkbox" data-check="power" checked>功率模块</label><label class="check"><input type="checkbox" data-check="baseplate" checked>散热底板</label><label class="check"><input type="checkbox" data-check="caps" checked>直流电容</label><label class="check"><input type="checkbox" data-check="pcb" checked>控制板</label><label class="check"><input type="checkbox" data-check="bus" checked>铜排</label><label class="check"><input type="checkbox" data-check="housing" checked>下壳体</label></div>
-<div class="bottom-actions"><button class="btn" id="explodeToggle">拆解/装配</button><button class="btn" id="showAll">显示全部</button></div></section>
-<section class="explosion"><div class="explosion-title">EXPLODED VIEW / 爆炸拆解</div><div id="exploded3d" style="position:absolute;inset:0"></div></section>
-<aside class="detail"><h2 class="panel-title">零件详情 / DETAILS</h2><div class="detail-visual" id="detailIcon">▤</div><div><strong id="detailName">上盖 · Aluminum cover</strong><p id="detailDesc">压铸铝合金散热上盖，具有平行散热鳍片、周边固定点与连接器开口。该模型为结构示意，并非原厂 CAD。</p></div></aside>
-</main>
-<script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js" onerror="this.onerror=null;this.src='https://unpkg.com/three@0.160.0/build/three.min.js'"></script>
+<header><div class="brand"><span class="mark">M3</span> MCU / CAD</div><div class="subtitle">INTERACTIVE 3D ASSEMBLY</div></header>
+<main><div id="stage"><canvas id="cad-canvas"></canvas></div>
+<div class="views"><button data-view="iso" class="active">3D</button><button data-view="front">正视</button><button data-view="side">侧视</button><button data-view="top">俯视</button><button data-view="bottom">底视</button></div>
+<div class="hint">单指拖动旋转 · 双指缩放 · 滚轮缩放</div>
+<div id="cad-error" class="error">正在加载三维模型…</div>
+<div class="panel">
+ <div class="row"><label class="label" for="cad-explode">爆炸分层</label><input id="cad-explode" class="range" type="range" min="0" max="100" value="18"><span id="cad-pct" class="pct">18%</span></div>
+ <div class="row actions"><button id="cad-spin">自动旋转：开</button><button id="cad-reset">重置视角</button><button id="cad-assemble">完整装配</button><button id="cad-explode-btn">爆炸分解</button></div>
+ <div class="note">可拖动旋转、缩放；滑动分层条查看内部组件。此为视觉演示模型，并非原厂尺寸工程图。</div>
+</div></main>
+<script src="https://cdn.jsdelivr.net/npm/three@0.150.1/build/three.min.js"></script>
 <script>
-(()=> {
-const status=document.getElementById('statusText');
-function fail(msg){status.textContent='ERROR';status.style.color='#ff987d';document.getElementById('main3d').innerHTML='<div style="padding:30px;color:#ffd4c8;font-size:13px;line-height:1.7">3D 场景无法启动。<br>'+msg+'<br>请确认网络可加载 Three.js，并使用支持 WebGL 的浏览器。</div>';document.getElementById('exploded3d').innerHTML='';}
-if(!window.THREE){fail('Three.js 加载失败');return}
-const T=THREE;
-const mats={
-al:new T.MeshStandardMaterial({color:0xb9c2c9,metalness:.86,roughness:.26}),
-alDark:new T.MeshStandardMaterial({color:0x65717a,metalness:.8,roughness:.3}),
-dark:new T.MeshStandardMaterial({color:0x171f27,metalness:.58,roughness:.3}),
-black:new T.MeshStandardMaterial({color:0x080e14,metalness:.38,roughness:.25}),
-copper:new T.MeshStandardMaterial({color:0xd07836,metalness:.84,roughness:.24}),
-orange:new T.MeshStandardMaterial({color:0xff781c,metalness:.35,roughness:.27}),
-green:new T.MeshStandardMaterial({color:0x176747,metalness:.22,roughness:.45}),
-chip:new T.MeshStandardMaterial({color:0x202b34,metalness:.42,roughness:.28}),
-ceramic:new T.MeshStandardMaterial({color:0xdce0e2,metalness:.28,roughness:.22}),
-gold:new T.MeshStandardMaterial({color:0xc8a35b,metalness:.82,roughness:.23})
-};
-const descriptions={lid:['上盖 · Aluminum cover','银色压铸铝合金上盖，顶部密集散热鳍片、加强筋与周边螺栓细节。'],seal:['密封垫 · Gasket','沿装配接合面布置的深色环形密封件。'],power:['功率模块 · SiC power stage','多组黑色功率半导体模块与金属端子，呈阵列排列。'],baseplate:['散热底板 · Cooling plate','金属散热底板与平行鳍片，为功率器件提供散热界面。'],caps:['直流电容 · DC link capacitors','一组圆柱形直流母线电容，带金属端盖。'],pcb:['控制板 · Control PCB','绿色电路板、控制芯片、元件封装与连接端子。'],bus:['铜排 · Copper busbars','橙铜色导电排、弯折端子和连接孔。'],housing:['下壳体 · Lower housing','银色铝合金下壳体，带安装耳、固定孔、侧壁与接插件开口。']};
-function makeScene(host,exploded=false){
-const scene=new T.Scene();scene.background=new T.Color(0x060d15);scene.fog=new T.Fog(0x060d15,17,32);
-const camera=new T.PerspectiveCamera(36,1,.1,100);let yaw=.72,pitch=.38,dist=exploded?12:11.8;const target=new T.Vector3(0,0,0);
-let renderer;try{renderer=new T.WebGLRenderer({antialias:true,alpha:false,powerPreference:'high-performance'});renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,1.6));renderer.outputColorSpace=T.SRGBColorSpace;renderer.toneMapping=T.ACESFilmicToneMapping;renderer.toneMappingExposure=1.18;renderer.shadowMap.enabled=true;renderer.shadowMap.type=T.PCFSoftShadowMap;host.appendChild(renderer.domElement)}catch(e){throw e}
-scene.add(new T.HemisphereLight(0xdceeff,0x202b35,2.1));const key=new T.DirectionalLight(0xffffff,3.4);key.position.set(5,10,7);key.castShadow=true;key.shadow.mapSize.set(768,768);scene.add(key);const rim=new T.DirectionalLight(0x68aeea,2.4);rim.position.set(-7,4,-5);scene.add(rim);const warm=new T.PointLight(0xff9a54,40,14);warm.position.set(-2,1,5);scene.add(warm);
-const floor=new T.Mesh(new T.PlaneGeometry(80,80),new T.MeshStandardMaterial({color:0x0a1119,roughness:.55,metalness:.18}));floor.rotation.x=-Math.PI/2;floor.position.y=-2.15;floor.receiveShadow=true;scene.add(floor);
-const root=new T.Group();scene.add(root);const groups={lid:new T.Group(),seal:new T.Group(),power:new T.Group(),baseplate:new T.Group(),caps:new T.Group(),pcb:new T.Group(),bus:new T.Group(),housing:new T.Group()};Object.values(groups).forEach(g=>root.add(g));
-function mesh(group,geo,mat,pos,rot){const o=new T.Mesh(geo,mat);o.position.set(...pos);if(rot)o.rotation.set(...rot);o.castShadow=true;o.receiveShadow=true;group.add(o);return o}
-function box(g,d,p,m){return mesh(g,new T.BoxGeometry(...d),m,p)}
-function cyl(g,r1,r2,h,p,m,n=24,rot){return mesh(g,new T.CylinderGeometry(r1,r2,h,n),m,p,rot)}
-function torus(g,r,t,p,m,rot=[Math.PI/2,0,0]){return mesh(g,new T.TorusGeometry(r,t,8,32),m,p,rot)}
-function ring(g,w,h,y,m){box(g,[w,.045,.055],[-w/2,y,-h/2],m);box(g,[w,.045,.055],[-w/2,y,h/2],m);box(g,[.055,.045,h],[-w/2,y,0],m);box(g,[.055,.045,h],[w/2,y,0],m)}
-// Lower cast enclosure with mounting ears and side walls
-box(groups.housing,[5.9,.42,3.7],[0,-.82,0],mats.al);box(groups.housing,[5.55,.15,3.35],[0,-.57,0],mats.alDark);
-for(let x of [-2.55,2.55])for(let z of [-1.45,1.45]){box(groups.housing,[.85,.2,.62],[x,-.93,z],mats.al);cyl(groups.housing,.19,.19,.08,[x,-.81,z],mats.dark,32);cyl(groups.housing,.105,.105,.085,[x,-.765,z],mats.black,24)}
-for(let i=0;i<17;i++){let z=-1.55+i*.194;box(groups.baseplate,[4.7,.085,.065],[0,-1.12,z],mats.alDark)}
-// Cooling plate
-box(groups.baseplate,[5.05,.14,3.05],[0,-.36,0],mats.al);for(let i=0;i<18;i++){let z=-1.38+i*.162;box(groups.baseplate,[4.65,.12,.065],[0,-.235,z],mats.alDark)}
-// seal rectangular perimeter
-ring(groups.seal,5.48,3.28,-.12,mats.black);box(groups.seal,[5.48,.045,.055],[0,-.12,-1.64],mats.black);
-// upper lid and prominent cooling fins
-box(groups.lid,[5.8,.36,3.62],[0,.93,0],mats.al);box(groups.lid,[5.5,.12,3.36],[0,1.16,0],mats.alDark);box(groups.lid,[4.25,.1,2.25],[0,1.24,0],mats.al);
-for(let i=0;i<25;i++){let z=-1.55+i*.129;box(groups.lid,[5.25,.12,.067],[0,1.31,z],mats.al)}
-for(let x of [-2.55,-1.8,-1.05,-.3,.45,1.2,1.95,2.55])for(let z of [-1.48,1.48]){cyl(groups.lid,.07,.07,.06,[x,1.15,z],mats.dark,16);box(groups.lid,[.08,.012,.018],[x,1.187,z],mats.gold)}
-// power stage array
-box(groups.power,[4.55,.12,2.6],[0,.02,0],mats.ceramic);
-for(let i=0;i<6;i++){let x=-1.9+i*.76;box(groups.power,[.58,.3,1.72],[x,.25,-.06],mats.dark);box(groups.power,[.48,.08,1.55],[x,.43,-.06],mats.chip);for(let j=0;j<3;j++){let z=-.55+j*.48;box(groups.power,[.35,.05,.34],[x,.49,z],mats.black);cyl(groups.power,.07,.07,.035,[x,.526,z],mats.gold,16)}}
-// capacitors
-for(let i=0;i<5;i++){let x=-1.65+i*.82;cyl(groups.caps,.28,.3,.78,[x,.52,-1.03],mats.ceramic,32);cyl(groups.caps,.27,.27,.08,[x,.95,-1.03],mats.alDark,32);torus(groups.caps,.17,.025,[x,1.0,-1.03],mats.gold);cyl(groups.caps,.06,.06,.035,[x,1.02,-1.03],mats.dark,12)}
-// control board, ICs and edge connectors
-box(groups.pcb,[4.15,.12,.88],[0,.94,.68],mats.green);
-for(let i=0;i<24;i++){let x=-1.86+(i%12)*.338,z=.39+Math.floor(i/12)*.52;box(groups.pcb,[.19,.07,.16],[x,1.035,z],mats.chip);box(groups.pcb,[.11,.018,.09],[x,1.079,z],mats.black)}
-for(let i=0;i<7;i++){let x=-1.65+i*.55;box(groups.pcb,[.28,.04,.055],[x,1.02,.18],mats.gold);box(groups.pcb,[.28,.04,.055],[x,1.02,1.17],mats.gold)}
-// copper rails and terminal bends
-for(let i=0;i<3;i++){let z=-.62+i*.48;box(groups.bus,[4.1,.09,.15],[0,.68,z],mats.copper);box(groups.bus,[.17,.26,.15],[-1.95,.55,z],mats.orange);box(groups.bus,[.17,.26,.15],[1.95,.55,z],mats.copper);for(let x of [-1.5,-.75,0,.75,1.5])cyl(groups.bus,.055,.055,.04,[x,.735,z],mats.gold,16)}
-// visible connectors at the ends
-for(let z of [-.85,0,.85]){box(groups.housing,[.42,.43,.48],[3.02,-.55,z],mats.dark);cyl(groups.housing,.22,.22,.28,[3.22,-.49,z],mats.orange,32,[0,0,Math.PI/2]);cyl(groups.housing,.14,.14,.31,[3.4,-.49,z],mats.black,24,[0,0,Math.PI/2]);torus(groups.housing,.18,.035,[3.4,-.49,z],mats.al,[0,Math.PI/2,0])}
-for(let i=0;i<8;i++){let z=-1.12+i*.32;box(groups.housing,[.18,.25,.2],[-3.02,-.5,z],mats.alDark);box(groups.housing,[.1,.15,.12],[-3.14,-.5,z],mats.black)}
-const base={};Object.keys(groups).forEach(k=>base[k]=groups[k].position.clone());
-const dirs={lid:new T.Vector3(0,2.15,0),seal:new T.Vector3(0,1.38,0),power:new T.Vector3(0,.5,0),baseplate:new T.Vector3(0,-.25,0),caps:new T.Vector3(0,1.35,-.2),pcb:new T.Vector3(0,1.9,.3),bus:new T.Vector3(0,1.25,-.15),housing:new T.Vector3(0,-1.15,0)};
-let explode=0,transparent=false,wire=false,activeKey='lid',visible={};Object.keys(groups).forEach(k=>visible[k]=true);
-function apply(){Object.keys(groups).forEach(k=>{groups[k].position.copy(base[k]).addScaledVector(dirs[k],explode);groups[k].visible=visible[k];groups[k].traverse(o=>{if(o.isMesh){o.material=o.userData.originalMat||o.material;if(!o.userData.originalMat)o.userData.originalMat=o.material;if(transparent&&(k==='lid'||k==='housing')){o.material=o.userData.originalMat.clone();o.material.transparent=true;o.material.opacity=.2;o.material.depthWrite=false}o.material.wireframe=wire}})});}
-function view(v){if(v==='top'){yaw=0;pitch=1.48;dist=10}else if(v==='bottom'){yaw=0;pitch=-1.45;dist=10}else if(v==='side'){yaw=1.55;pitch=.12;dist=11}else if(v==='front'){yaw=0;pitch=.08;dist=11}else{yaw=.72;pitch=.38;dist=11.8}}
-function resize(){const w=Math.max(host.clientWidth,1),h=Math.max(host.clientHeight,1);renderer.setSize(w,h,false);camera.aspect=w/h;camera.fov=w<500?43:36;camera.updateProjectionMatrix()}
-const ro=new ResizeObserver(resize);ro.observe(host);resize();
-let down=false,lastX=0,lastY=0,lastPinch=0,lastMid=null;
-renderer.domElement.addEventListener('pointerdown',e=>{down=true;lastX=e.clientX;lastY=e.clientY;renderer.domElement.setPointerCapture(e.pointerId)});renderer.domElement.addEventListener('pointermove',e=>{if(!down)return;let dx=e.clientX-lastX,dy=e.clientY-lastY;lastX=e.clientX;lastY=e.clientY;yaw-=dx*.008;pitch=Math.max(-1.48,Math.min(1.48,pitch+dy*.006));});renderer.domElement.addEventListener('pointerup',()=>down=false);renderer.domElement.addEventListener('pointercancel',()=>down=false);renderer.domElement.addEventListener('wheel',e=>{dist=Math.max(6,Math.min(21,dist+e.deltaY*.012));e.preventDefault()},{passive:false});
-renderer.domElement.addEventListener('touchmove',e=>{if(e.touches.length===2){const a=e.touches[0],b=e.touches[1],d=Math.hypot(a.clientX-b.clientX,a.clientY-b.clientY);if(lastPinch)dist=Math.max(6,Math.min(21,dist+(lastPinch-d)*.025));lastPinch=d}else lastPinch=0},{passive:true});renderer.domElement.addEventListener('touchend',()=>lastPinch=0);
-function animate(){requestAnimationFrame(animate);const cp=Math.cos(pitch);camera.position.set(Math.sin(yaw)*cp*dist,Math.sin(pitch)*dist,Math.cos(yaw)*cp*dist);camera.lookAt(target);renderer.render(scene,camera);if(exploded)apply()}
-animate();
-return {groups,apply,setExplode(v){explode=v;apply()},setTransparent(v){transparent=v;apply()},setWire(v){wire=v;apply()},setView:view,reset(){view('iso');target.set(0,0,0);dist=11.8},setVisible(k,v){visible[k]=v;apply()},getVisible(k){return visible[k]},select(k){activeKey=k;return k},dispose(){ro.disconnect();renderer.dispose()}};
-}
-let main,mini;try{main=makeScene(document.getElementById('main3d'),false);mini=makeScene(document.getElementById('exploded3d'),true);status.textContent='READY'}catch(e){console.error(e);fail('WebGL 初始化失败');return}
-let explode=0,transparent=false,wire=false,activeKey='lid';
-function setExplode(v){explode=Math.max(0,Math.min(1,v));main.setExplode(explode);mini.setExplode(Math.max(explode,.72));document.getElementById('amount').value=Math.round(explode*100);document.getElementById('pct').textContent=Math.round(explode*100)+'%';document.getElementById('explodeToggle').classList.toggle('active',explode>.02);document.querySelector('[data-tool="explode"]').classList.toggle('active',explode>.02);document.querySelector('[data-tool="assembly"]').classList.toggle('active',explode<=.02)}
-document.getElementById('amount').addEventListener('input',e=>setExplode(+e.target.value/100));document.getElementById('explodeToggle').onclick=()=>setExplode(explode>.05?0:1);document.querySelectorAll('[data-tool="explode"],[data-tool="assembly"]').forEach(b=>b.onclick=()=>setExplode(b.dataset.tool==='explode'?1:0));
-function setTransparent(v){transparent=v;main.setTransparent(v);mini.setTransparent(v);document.getElementById('transparency').classList.toggle('active',v)}
-document.getElementById('transparency').onclick=()=>setTransparent(!transparent);document.getElementById('wireframe').onclick=()=>{wire=!wire;main.setWire(wire);mini.setWire(wire);document.getElementById('wireframe').classList.toggle('active',wire)};
-document.querySelectorAll('[data-view]').forEach(b=>b.onclick=()=>{main.setView(b.dataset.view);mini.setView(b.dataset.view);document.querySelectorAll('[data-view]').forEach(x=>x.classList.toggle('active',x===b))});
-function selectPart(k){activeKey=k;const d=descriptions[k];document.getElementById('detailName').textContent=d[0];document.getElementById('detailDesc').textContent=d[1]+' 此模型为概念几何，并非原厂 CAD 数据。';const icons={lid:'▤',seal:'◇',power:'▦',baseplate:'▤',caps:'▥',pcb:'▧',bus:'⌁',housing:'▱'};document.getElementById('detailIcon').textContent=icons[k]||'▤';}
-document.querySelectorAll('.part').forEach(row=>{const k=row.dataset.key;row.querySelector('.eye').onclick=()=>{const v=!main.getVisible(k);main.setVisible(k,v);mini.setVisible(k,v);row.querySelector('.eye').textContent=v?'◉':'⊘';document.querySelector('[data-check="'+k+'"]').checked=v};row.onclick=e=>{if(e.target.closest('button'))return;selectPart(k)}});
-document.querySelectorAll('[data-check]').forEach(c=>c.onchange=()=>{const k=c.dataset.check;main.setVisible(k,c.checked);mini.setVisible(k,c.checked);document.querySelector('.part[data-key="'+k+'"] .eye').textContent=c.checked?'◉':'⊘'});
-document.getElementById('showAll').onclick=()=>{Object.keys(descriptions).forEach(k=>{main.setVisible(k,true);mini.setVisible(k,true);document.querySelector('[data-check="'+k+'"]').checked=true;document.querySelector('.part[data-key="'+k+'"] .eye').textContent='◉'})};
-document.getElementById('partFocus').onclick=()=>{const keys=Object.keys(descriptions),i=(keys.indexOf(activeKey)+1)%keys.length;selectPart(keys[i]);document.querySelector('.part[data-key="'+keys[i]+'"]').scrollIntoView({block:'nearest',behavior:'smooth'})};
-document.getElementById('reset').onclick=()=>{setExplode(0);setTransparent(false);wire=false;main.setWire(false);mini.setWire(false);main.reset();mini.reset();document.getElementById('wireframe').classList.remove('active');document.querySelectorAll('[data-view]').forEach(b=>b.classList.toggle('active',b.dataset.view==='iso'));document.getElementById('showAll').click();selectPart('lid')};
-document.querySelector('[data-tool="assembly"]').classList.add('active');selectPart('lid');
+(function(){
+const canvas=document.getElementById('cad-canvas'),err=document.getElementById('cad-error'),stage=document.getElementById('stage');
+if(!window.THREE){err.textContent='无法加载 Three.js。请检查网络后刷新页面。';return;}
+const scene=new THREE.Scene();scene.background=new THREE.Color(0x10171f);scene.fog=new THREE.Fog(0x10171f,18,36);
+const camera=new THREE.PerspectiveCamera(38,1,.1,100);
+const renderer=new THREE.WebGLRenderer({canvas,antialias:true,alpha:false});renderer.setPixelRatio(Math.min(devicePixelRatio||1,2));renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.18;
+scene.add(new THREE.HemisphereLight(0xdceaff,0x26313b,2.1));
+const key=new THREE.DirectionalLight(0xffffff,3.2);key.position.set(5,9,7);scene.add(key);
+const rim=new THREE.DirectionalLight(0x53b9d4,2.1);rim.position.set(-6,3,-6);scene.add(rim);
+const mat=(c,metal=.25,rough=.35)=>new THREE.MeshStandardMaterial({color:c,metalness:metal,roughness:rough});
+const aluminum=mat(0x9aa9b7,.82,.24),bright=mat(0xdce4eb,.8,.2),graphite=mat(0x202a34,.55,.3),black=mat(0x10161d,.3,.32),green=mat(0x165346,.25,.4),green2=mat(0x267c68,.25,.35),gold=mat(0xc4a15d,.78,.22),copper=mat(0xb27c43,.75,.26),blue=mat(0x326b89,.45,.3);
+const assembly=new THREE.Group();scene.add(assembly);const layers=[];
+function layer(y){const g=new THREE.Group();g.position.y=y;assembly.add(g);layers.push({g,y});return g}
+function box(g,w,h,d,m,x,y,z){const o=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),m);o.position.set(x,y,z);g.add(o);return o}
+function cylinder(g,r,h,m,x,y,z){const o=new THREE.Mesh(new THREE.CylinderGeometry(r,r,h,24),m);o.position.set(x,y,z);g.add(o);return o}
+const base=layer(-1.12);
+box(base,5.5,.4,3.55,blue,0,0,0);box(base,5.24,.16,3.3,graphite,0,.24,0);box(base,4.98,.1,3.08,aluminum,0,.34,0);
+for(let i=0;i<22;i++)box(base,.055,.17,.24,gold,-1.65+i*.157,.02,1.82);
+box(base,3.85,.17,.27,black,0,.02,1.8);
+for(const x of [-2.35,2.35])for(const z of [-1.35,1.35])cylinder(base,.12,.12,bright,x,.45,z);
+const shield=layer(-.57);
+box(shield,5.15,.16,3.23,graphite,0,0,0);box(shield,4.98,.07,3.06,bright,0,.11,0);
+for(const x of [-2.3,2.3])for(const z of [-1.3,1.3])cylinder(shield,.13,.08,graphite,x,.17,z);
+const pcbLayer=layer(.03);
+box(pcbLayer,4.85,.15,2.94,green,0,0,0);box(pcbLayer,4.55,.025,2.7,green2,0,.087,0);
+for(let i=0;i<14;i++)box(pcbLayer,.018,.014,1.9,copper,-1.9+i*.29,.108,0);
+for(let i=0;i<9;i++)box(pcbLayer,2.4,.014,.018,copper,0,.11,-1.1+i*.27);
+for(let i=0;i<6;i++)for(let j=0;j<4;j++)cylinder(pcbLayer,.035,.025,gold,-2.05+i*.78,.12,-1.12+j*.72);
+const chips=[[-1.68,-.72,.65,.53],[-1.68,.62,.65,.53],[1.38,-.72,.72,.58],[1.38,.02,.72,.58],[1.38,.75,.72,.48],[-.1,1.02,.55,.34]];
+for(const [x,z,w,d] of chips){box(pcbLayer,w,.19,d,black,x,.22,z);box(pcbLayer,w*.82,.055,d*.78,graphite,x,.34,z);for(let i=0;i<5;i++){box(pcbLayer,.055,.035,.05,bright,x-w*.31+i*w*.155,.39,z-d*.23);box(pcbLayer,.055,.035,.05,bright,x-w*.31+i*w*.155,.39,z+d*.23)}for(let i=0;i<4;i++){box(pcbLayer,.045,.035,.05,gold,x-w*.42,.28,z-d*.25+i*d*.16);box(pcbLayer,.045,.035,.05,gold,x+w*.42,.28,z-d*.25+i*d*.16)}}
+box(pcbLayer,1.2,.2,1.05,black,.05,.27,-.02);box(pcbLayer,1.08,.055,.93,graphite,.05,.39,-.02);
+for(let i=0;i<18;i++){const p=-.44+i*.057;box(pcbLayer,.026,.07,.08,gold,p,.36,-.57);box(pcbLayer,.026,.07,.08,gold,p,.36,.53)}
+for(let i=0;i<15;i++)box(pcbLayer,.12,.11,.065,bright,2.3,.18,-1.25+i*.175);
+const thermal=layer(.66);box(thermal,4.98,.14,3.12,copper,0,0,0);box(thermal,5.12,.12,3.24,graphite,0,.1,0);
+const lid=layer(1.2);box(lid,5.4,.22,3.52,aluminum,0,0,0);box(lid,5.05,.07,3.18,bright,0,.15,0);box(lid,4.82,.06,2.95,graphite,0,.21,0);
+for(let i=0;i<15;i++){const x=-2.2+i*.315;box(lid,.105,.34,2.55,bright,x,.39,0);box(lid,.14,.055,2.58,aluminum,x,.57,0)}
+for(const x of [-2.48,2.48])for(const z of [-1.5,1.5]){cylinder(lid,.105,.07,graphite,x,.18,z);cylinder(lid,.062,.08,bright,x,.23,z)}
+const grid=new THREE.GridHelper(18,36,0x334654,0x243441);grid.position.y=-1.72;scene.add(grid);
+const floor=new THREE.Mesh(new THREE.PlaneGeometry(200,200),mat(0x10171f,.05,.9));floor.rotation.x=-Math.PI/2;floor.position.y=-1.74;scene.add(floor);
+let radius=11.7,az=.68,pol=1.04,auto=true,drag=false,lastX=0,lastY=0,pointers=new Map(),lastPinch=0;
+function place(){pol=Math.max(.12,Math.min(Math.PI-.12,pol));radius=Math.max(5,Math.min(24,radius));camera.position.set(radius*Math.sin(pol)*Math.sin(az),radius*Math.cos(pol),radius*Math.sin(pol)*Math.cos(az));camera.lookAt(0,0,0)}
+function setExplode(v){document.getElementById('cad-pct').textContent=v+'%';const gap=v*.008;layers.forEach((l,i)=>l.g.position.y=l.y+(i-2.5)*gap)}
+function resize(){const w=stage.clientWidth,h=stage.clientHeight;renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix()}
+resize();place();setExplode(18);err.style.display='none';
+canvas.addEventListener('pointerdown',e=>{pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});canvas.setPointerCapture(e.pointerId);if(pointers.size===1){drag=true;lastX=e.clientX;lastY=e.clientY}else if(pointers.size===2){const a=[...pointers.values()];lastPinch=Math.hypot(a[0].x-a[1].x,a[0].y-a[1].y);drag=false}});
+canvas.addEventListener('pointermove',e=>{if(!pointers.has(e.pointerId))return;const prev=pointers.get(e.pointerId);pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});if(pointers.size===1&&drag){az-=(e.clientX-lastX)*.008;pol-=(e.clientY-lastY)*.008;lastX=e.clientX;lastY=e.clientY;place()}else if(pointers.size===2){const a=[...pointers.values()],d=Math.hypot(a[0].x-a[1].x,a[0].y-a[1].y);if(lastPinch)radius*=lastPinch/d;lastPinch=d;place()}});
+function pointerEnd(e){pointers.delete(e.pointerId);drag=false;lastPinch=0}canvas.addEventListener('pointerup',pointerEnd);canvas.addEventListener('pointercancel',pointerEnd);
+canvas.addEventListener('wheel',e=>{radius*=e.deltaY>0?1.08:.92;place()},{passive:true});
+document.getElementById('cad-explode').addEventListener('input',e=>setExplode(+e.target.value));
+document.getElementById('cad-spin').onclick=e=>{auto=!auto;e.target.textContent='自动旋转：'+(auto?'开':'关');e.target.classList.toggle('active',!auto)};
+document.getElementById('cad-reset').onclick=()=>{radius=11.7;az=.68;pol=1.04;document.getElementById('cad-explode').value=18;setExplode(18);place()};
+document.getElementById('cad-assemble').onclick=()=>{document.getElementById('cad-explode').value=0;setExplode(0)};
+document.getElementById('cad-explode-btn').onclick=()=>{document.getElementById('cad-explode').value=70;setExplode(70)};
+document.querySelectorAll('[data-view]').forEach(b=>b.onclick=()=>{document.querySelectorAll('[data-view]').forEach(x=>x.classList.remove('active'));b.classList.add('active');radius=11.7;const v=b.dataset.view;if(v==='front'){az=0;pol=Math.PI/2}else if(v==='side'){az=Math.PI/2;pol=Math.PI/2}else if(v==='top'){az=0;pol=.12}else if(v==='bottom'){az=0;pol=Math.PI-.12}else{az=.68;pol=1.04}place()});
+if(window.ResizeObserver)new ResizeObserver(resize).observe(stage);else window.addEventListener('resize',resize);
+function tick(){requestAnimationFrame(tick);if(auto&&!drag)assembly.rotation.y+=.0022;renderer.render(scene,camera)}tick();
 })();
 </script>
-</body></html>
+</body>
+</html>
