@@ -1,142 +1,93 @@
 <!doctype html>
-<html lang="zh-CN"><head><meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
-<meta name="color-scheme" content="dark"><title>Model 3 电机控制器 MCU · 三维拆解</title>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="theme-color" content="#10171f">
+<title>MCU / CAD · Interactive 3D Assembly</title>
 <style>
-*{box-sizing:border-box}html,body{margin:0;height:100%;overflow:hidden;background:#080d13;color:#edf3f8;font-family:system-ui,-apple-system,"Segoe UI",sans-serif}
-#stage{position:absolute;inset:0;touch-action:none}canvas{display:block;width:100%;height:100%;touch-action:none}
-.top{position:absolute;top:0;left:0;right:0;padding:calc(10px + env(safe-area-inset-top,0px)) 14px 22px;background:linear-gradient(#080d13f0,transparent);pointer-events:none}
-.top b{font-size:16px;font-weight:650}.top span{display:block;font-size:10px;letter-spacing:.14em;color:#8ba2b9;margin-bottom:3px}
-#panel{position:absolute;left:0;right:0;bottom:0;padding:22px 8px calc(8px + env(safe-area-inset-bottom,0px));background:linear-gradient(transparent,#080d13 22%);display:flex;flex-direction:column;gap:6px}
-#info{font-size:12px;color:#c4d1dc;padding:0 4px;min-height:16px}
-.row{display:flex;gap:6px}.sc{overflow-x:auto;scrollbar-width:none}.sc::-webkit-scrollbar{display:none}
-button{flex:none;border:1px solid #364656;border-radius:11px;min-height:42px;padding:8px 13px;background:#141e29;color:#eaf1f8;font-size:13px;touch-action:manipulation;white-space:nowrap}
-.row:not(.sc) button{flex:1}button.on{background:#dce8f2;color:#0b1219;border-color:#dce8f2}button.off{opacity:.4}
-.sl{display:flex;align-items:center;gap:10px;font-size:12px;color:#9aa9b8;padding:0 4px}.sl input{flex:1;min-height:30px}.sl span{width:38px;text-align:right}
-.foot{font-size:10px;color:#7d8fa1;padding:0 4px}.foot i{display:inline-block;width:6px;height:6px;border-radius:50%;background:#e6b76a;margin-right:6px}
-#lab{position:absolute;left:0;top:0;display:none;transform:translate(-50%,-50%);pointer-events:none;font-size:12px;padding:4px 10px;border-radius:20px;background:#0b1219e6;border:1px solid #ffc857;color:#ffe3a3;white-space:nowrap;z-index:3}
-.row:not(.sc) button{padding:8px 4px}
-#err{display:none;position:absolute;left:16px;right:16px;top:35%;padding:16px;background:#251c1c;border:1px solid #764747;border-radius:12px;font-size:13px;line-height:1.6;z-index:5}
-</style></head><body>
-<div id="stage"></div>
-<header class="top"><span>DRIVE UNIT INVERTER</span><b>Model 3 电机控制器 MCU</b></header>
-<div id="lab"></div><div id="err"></div>
-<div id="panel">
-<div id="info"></div>
-<div class="row"><button id="bHide">隐藏</button><button id="bIso">隔离</button><button id="bAll">全部显示</button><button id="bNone">取消选择</button></div>
-<div class="row sc" id="chips"></div>
-<div class="row sc"><button data-v="front">正视</button><button data-v="side">侧视</button><button data-v="top">俯视</button><button data-v="bottom">底视</button><button data-v="iso">等轴测</button><button id="bEx">拆解</button><button id="bWire">线框</button><button id="bReset">复位</button></div>
-<label class="sl">外壳透明度<input type="range" id="op" min="10" max="100" value="100"><span id="opv">100%</span></label>
-<div class="foot"><i></i>尺寸均为近似 · 接口/螺栓/冷却结构依据维修手册条目,功率模块数量依据拆解报道 · 未锁定 3DU/4DU</div>
-</div>
-<script>function showErr(m){var e=document.getElementById('err');e.textContent=m||'Three.js 未能加载,请检查手机网络后刷新页面。';e.style.display='block'}</script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js" onerror="showErr()"></script>
+:root{color-scheme:dark;--bg:#10171f;--panel:#111a23ed;--line:#34424e;--text:#e5edf5;--muted:#8294a5;--mint:#91d1c5}
+*{box-sizing:border-box}html,body{margin:0;width:100%;min-height:100%;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,"Segoe UI",sans-serif}body{overflow:hidden}
+header{height:58px;display:flex;align-items:center;justify-content:space-between;padding:0 14px;border-bottom:1px solid #34404d;background:#0c1117;position:relative;z-index:2}.brand{letter-spacing:.18em;font-weight:700}.mark{border:1px solid #8ebeb8;border-radius:8px;padding:5px;margin-right:8px;color:#9ad5cc}.subtitle{font-size:11px;color:#8295a8}
+main{height:calc(100dvh - 58px);min-height:440px;position:relative;background:radial-gradient(ellipse at 50% 42%,#1b2b39,#10171f 68%)}#stage{position:absolute;inset:0}canvas{width:100%;height:100%;display:block;touch-action:none}
+.views{position:absolute;top:14px;right:12px;display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;z-index:3;max-width:85%}
+button{background:#17222d;color:#dce8f1;border:1px solid #435260;border-radius:12px;padding:9px 11px;font-size:12px;cursor:pointer;min-height:38px}button:active,button.active{background:#2c4c56;border-color:#91d1c5}
+.hint{position:absolute;top:65px;left:12px;font-size:11px;color:#9cabb9;background:#111a23b8;border:1px solid #2a3b48;padding:7px 10px;border-radius:10px;pointer-events:none}
+.panel{position:absolute;bottom:12px;left:12px;right:12px;padding:12px;border:1px solid #34424e;border-radius:18px;background:#111a23ed;z-index:3;max-width:680px;margin:auto;backdrop-filter:blur(8px)}
+.row{display:flex;align-items:center;gap:10px}.row+.row{margin-top:10px}.label{font-size:12px;min-width:66px}.range{flex:1;min-width:60px;accent-color:#91d1c5}.pct{font-size:12px;min-width:32px;text-align:right;color:#b7dcd5}.actions{display:flex;gap:8px;flex-wrap:wrap}.actions button{flex:1;min-width:95px}.note{font-size:11px;color:#8294a5;margin-top:8px}.error{position:absolute;top:45%;left:16px;right:16px;text-align:center;color:#c5d4df;background:#111a23d9;padding:12px;border-radius:10px}
+@media(min-width:800px){.panel{left:50%;right:auto;transform:translateX(-50%);width:min(680px,calc(100% - 24px))}.views{right:max(12px,calc((100% - 1100px)/2))}header{padding:0 max(14px,calc((100% - 1100px)/2))}}
+</style>
+</head>
+<body>
+<header><div class="brand"><span class="mark">M3</span> MCU / CAD</div><div class="subtitle">INTERACTIVE 3D ASSEMBLY</div></header>
+<main><div id="stage"><canvas id="cad-canvas"></canvas></div>
+<div class="views"><button data-view="iso" class="active">3D</button><button data-view="front">正视</button><button data-view="side">侧视</button><button data-view="top">俯视</button><button data-view="bottom">底视</button></div>
+<div class="hint">单指拖动旋转 · 双指缩放 · 滚轮缩放</div>
+<div id="cad-error" class="error">正在加载三维模型…</div>
+<div class="panel">
+ <div class="row"><label class="label" for="cad-explode">爆炸分层</label><input id="cad-explode" class="range" type="range" min="0" max="100" value="18"><span id="cad-pct" class="pct">18%</span></div>
+ <div class="row actions"><button id="cad-spin">自动旋转：开</button><button id="cad-reset">重置视角</button><button id="cad-assemble">完整装配</button><button id="cad-explode-btn">爆炸分解</button></div>
+ <div class="note">可拖动旋转、缩放；滑动分层条查看内部组件。此为视觉演示模型，并非原厂尺寸工程图。</div>
+</div></main>
+<script src="https://cdn.jsdelivr.net/npm/three@0.150.1/build/three.min.js"></script>
 <script>
 (function(){
-if(!window.THREE){showErr();return}
-try{
-const T=THREE,$=s=>document.querySelector(s),cl=(v,a,b)=>Math.max(a,Math.min(b,v));
-const scene=new T.Scene();scene.background=new T.Color('#080d13');scene.fog=new T.Fog('#080d13',18,44);
-const camera=new T.PerspectiveCamera(38,innerWidth/innerHeight,.1,100);
-const r=new T.WebGLRenderer({antialias:true});r.setPixelRatio(Math.min(devicePixelRatio||1,1.8));r.outputEncoding=T.sRGBEncoding;r.toneMapping=T.ACESFilmicToneMapping;r.toneMappingExposure=1.1;$('#stage').appendChild(r.domElement);
-scene.add(new T.HemisphereLight(0xc9e2ff,0x26303a,1.0));
-[[0xfff0db,1.5,5,9,7],[0x6bafff,1,-7,3,-5],[0xffffff,.6,0,-3,5]].forEach(a=>{const l=new T.DirectionalLight(a[0],a[1]);l.position.set(a[2],a[3],a[4]);scene.add(l)});
-const grid=new T.GridHelper(20,30,0x324454,0x1a2a38);grid.position.y=-.8;scene.add(grid);
-const M=(c,m,ro)=>new T.MeshStandardMaterial({color:c,metalness:m,roughness:ro});
-const al=M('#8997a3',.78,.32),lidM=M('#aeb9c3',.72,.3),dk=M('#202c37',.48,.4),bk=M('#111a23',.25,.42),cu=M('#c99d55',.82,.27),gd=M('#e0c17f',.75,.28),pcb=M('#19745f',.2,.5),chip=M('#273540',.35,.35),sv=M('#d0d8de',.8,.24),bl=M('#31566a',.35,.38);
-const root=new T.Group();scene.add(root);const parts=[];let cur;
-function P(id,name,off,shell,bs,src){const g=new T.Group();bs=bs||[0,0,0];g.userData={id,name,src:src||'apx',base:new T.Vector3(bs[0],bs[1],bs[2]),exp:new T.Vector3(off[0],off[1],off[2]),shell:!!shell};root.add(g);parts.push(g);cur=g}
-function B(x,y,z,a,b,c,m){const o=new T.Mesh(new T.BoxGeometry(a,b,c),m);o.position.set(x,y,z);cur.add(o)}
-function C(x,y,z,rad,h,m,ax){const o=new T.Mesh(new T.CylinderGeometry(rad,rad,h,20),m);o.position.set(x,y,z);if(ax==='x')o.rotation.z=Math.PI/2;if(ax==='z')o.rotation.x=Math.PI/2;cur.add(o)}
-function O(x,y,z,rad,t,m,ax){const o=new T.Mesh(new T.TorusGeometry(rad,t,8,24),m);o.position.set(x,y,z);if(ax==='x')o.rotation.y=Math.PI/2;else o.rotation.x=Math.PI/2;cur.add(o)}
-function U(p,rad,m){const c=new T.CatmullRomCurve3(p.map(a=>new T.Vector3(a[0],a[1],a[2])));cur.add(new T.Mesh(new T.TubeGeometry(c,32,rad,8,false),m))}
-function Bt(x,y,z,rad){C(x,y,z,rad,.055,sv);B(x,y+.032,z,.075,.012,.075,dk)}
-// 1 下壳体
-P('housing','下壳体(铸铝)',[0,0,0],true);
-B(0,-.43,0,5.65,.22,3.65,al);B(-2.72,-.04,0,.21,.64,3.65,al);B(2.72,-.04,0,.21,.64,3.65,al);B(0,-.04,-1.72,5.65,.64,.21,al);B(0,-.04,1.72,5.65,.64,.21,al);
-B(0,.30,-1.62,5.25,.08,.09,dk);B(0,.30,1.62,5.25,.08,.09,dk);B(-2.57,.30,0,.09,.08,3.15,dk);B(2.57,.30,0,.09,.08,3.15,dk);
-B(0,-.48,0,6.05,.1,4.05,al);for(const x of[-2,-.67,.67,2])for(const z of[-1.93,1.93])Bt(x,-.4,z,.07);for(const x of[-2.93,2.93])for(const z of[-.6,.6])Bt(x,-.4,z,.07);
-for(let s=-1;s<=1;s+=2)for(let i=0;i<5;i++){const z=-1.15+i*.575;B(s*2.835,-.03,z,.055,.36,.095,dk);B(s*2.868,-.03,z,.018,.30,.045,al)}
-P('gasket','逆变器密封垄',[0,-.55,0],false,[0,0,0],'ref');
-B(0,-.57,0,6.0,.04,4.0,bk);
-// 2 上盖
-P('lid','上盖',[0,2.4,0],true);
-B(0,.48,0,5.38,.18,3.36,lidM);B(0,.585,0,5.04,.055,3.02,al);
-for(let i=0;i<7;i++)B(-1.85+i*.62,.62,0,.09,.035,2.30,al);
-for(const x of[-2.35,2.35])for(const z of[-1.25,1.25])Bt(x,.62,z,.07);
-for(const z of[-1.48,1.48]){B(0,.285,z,4.72,.025,.035,sv);for(let i=0;i<9;i++)C(-2.05+i*.51,.285,z,.045,.026,dk)}
-// 3 高压接口 4 信号接口
-P('hv','高压插座(HV Header)',[0,0,1.1]);
-B(-1.62,.02,2.02,1.18,.57,.54,dk);B(-1.62,.05,2.33,.95,.39,.14,bk);B(-1.62,.27,2.12,1.03,.08,.32,bl);for(let i=0;i<2;i++)B(-1.87+i*.5,.28,2.30,.16,.05,.05,gd);
-P('sig','低压插座(LV)',[0,0,1.1]);
-B(1.63,.02,2.02,.86,.45,.48,bl);B(1.63,.02,2.30,.66,.29,.12,bk);for(let i=0;i<7;i++)B(1.36+i*.09,.03,2.37,.027,.13,.022,gd);
-// 5 冷却接头
-P('cool','冷却液进/出口接头',[1.2,0,0]);
-for(const z of[-.67,.67]){C(2.94,.05,z,.26,.46,sv,'x');C(3.19,.05,z,.20,.10,bl,'x');O(3.23,.05,z,.15,.035,bk,'x');C(3.25,.05,z,.105,.04,bk,'x')}
-// 6 三相输出端子
-P('phase','三相输出端子',[0,1.5,0]);
-B(.12,.39,-.16,2.15,.12,1.55,dk);
-for(let i=0;i<3;i++){const x=-.58+i*.7;B(x,.50,-.16,.36,.18,.68,cu);C(x,.60,-.40,.105,.035,gd);O(x,.621,-.40,.067,.014,bk);C(x,.665,-.40,.135,.045,sv);O(x,.69,-.40,.105,.018,cu);C(x,.70,-.40,.065,.055,gd)}
-P('phcov','三相检修盖(2×螺栓)',[0,3.2,0],false,[0,0,0],'ref');
-B(.12,.80,-.30,2.5,.07,1.1,lidM);Bt(-.95,.855,-.30,.07);Bt(1.19,.855,-.30,.07);
-// 7 功率基板与模块
-P('heat','针翅散热底板',[0,.3,0],false,[0,0,0],'ref');
-B(0,-.12,0,4.72,.12,2.72,al);
-for(let i=0;i<12;i++)for(let j=0;j<7;j++)C(-2+i*.36,-.24,-1+j*.33,.045,.12,sv);
-P('power','SiC 功率模块 ×24',[0,.75,0],false,[0,0,0],'ref');
-for(let p=0;p<3;p++)for(let c=0;c<2;c++)for(let k=0;k<4;k++){const x=-1.4+p*1.4+(c?.27:-.27),z=-.58+k*.39;B(x,0,z,.4,.1,.3,chip);B(x,.065,z,.14,.03,.2,gd)}
-// 8 直流电容
-P('cap','直流母线电容',[0,.95,.5]);
-for(let i=0;i<4;i++){const x=-1.65+i*.9;C(x,.08,.92,.18,.40,sv);C(x,.29,.92,.14,.035,dk);C(x,.315,.92,.06,.018,gd)}
-// 9 控制板
-P('ctrl','控制板与线束接插件',[0,1.65,-.6],false,[0,.3,0]);
-B(.08,.03,-.93,2.35,.12,.63,pcb);for(let i=0;i<7;i++)B(-.82+i*.28,.115,-.93,.13,.08,.19,chip);for(let i=0;i<8;i++)B(-.83+i*.24,.11,-.64,.045,.035,.045,gd);
-for(let i=0;i<4;i++){const x=-1.55+i*1.03;C(x,.01,-1.17,.075,.22,sv);C(x,.13,-1.17,.045,.035,gd)}
-for(let i=0;i<5;i++)B(-2.12+i*.18,.02,1.08,.08,.07,.28,bl);
-// 10 母排
-P('bus','铜母排',[0,1.0,0]);
-for(let i=0;i<3;i++){const x=-.58+i*.58;B(x,.2,-.05,.13,.06,1.58,cu);B(x,.25,.63,.24,.05,.17,gd);U([[x,.14,.25],[x,.22,.48],[x,.22,.68],[x+.12,.2,.82]],.045,cu);C(x+.12,.2,.82,.075,.045,gd)}
-// 每个网格独立材质(便于高亮/透明/线框)
-parts.forEach(g=>g.children.forEach(m=>{m.material=m.material.clone();m.userData.e=m.material.emissive.getHex()}));
-// 状态
-let sel=null,iso=null,ex=0,exT=0,wire=false;const ol=new T.BoxHelper(root,0xffc857);ol.material.depthTest=false;ol.renderOrder=10;ol.visible=false;scene.add(ol);const bx=new T.Box3(),c3=new T.Vector3();const hid=new Set(),chips={};
-function vis(g){return iso?g===iso:!hid.has(g)}
-function refresh(){
- parts.forEach(g=>{g.visible=vis(g);const on=g===sel;g.children.forEach(m=>m.material.emissive.setHex(on?0x1d4f82:m.userData.e));chips[g.userData.id].className=(on?'on ':'')+(vis(g)?'':'off')});
- ol.visible=!!sel&&vis(sel);$('#lab').style.display=ol.visible?'block':'none';if(sel)$('#lab').textContent=sel.userData.name;
- $('#info').textContent=sel?sel.userData.name+(hid.has(sel)?'(已隐藏)':'')+' · '+(sel.userData.src==='ref'?'结构依据维修手册条目/公开拆解资料,尺寸近似':'近似建模'):'点击模型零件选中,或从下方列表选择';
- $('#bHide').textContent=sel&&hid.has(sel)?'显示':'隐藏';$('#bIso').className=iso?'on':'';
-}
-parts.forEach(g=>{const b=document.createElement('button');b.textContent=g.userData.name.replace(/\(.*\)/,'');b.onclick=()=>{sel=sel===g?null:g;refresh()};$('#chips').appendChild(b);chips[g.userData.id]=b});
-$('#bHide').onclick=()=>{if(!sel)return;hid.has(sel)?hid.delete(sel):hid.add(sel);if(iso===sel)iso=null;refresh()};
-$('#bIso').onclick=()=>{if(!sel)return;iso=iso===sel?null:sel;hid.delete(sel);refresh()};
-$('#bAll').onclick=()=>{hid.clear();iso=null;refresh()};
-$('#bNone').onclick=()=>{sel=null;refresh()};
-$('#bEx').onclick=()=>{exT=exT?0:1;$('#bEx').className=exT?'on':''};
-$('#bWire').onclick=()=>{wire=!wire;parts.forEach(g=>g.children.forEach(m=>m.material.wireframe=wire));$('#bWire').className=wire?'on':''};
-$('#op').oninput=e=>{const v=e.target.value/100;$('#opv').textContent=e.target.value+'%';parts.forEach(g=>{if(g.userData.shell)g.children.forEach(m=>{m.material.transparent=v<1;m.material.opacity=v;m.material.depthWrite=v>.99;m.material.needsUpdate=true})})};
-// 相机
-let az=.7,el=.5,zoom=1;const V={front:[0,0],side:[Math.PI/2,0],top:[0,1.5],bottom:[0,-1.5],iso:[.7,.5]};
-document.querySelectorAll('[data-v]').forEach(b=>b.onclick=()=>{const v=V[b.dataset.v];az=v[0];el=v[1]});
-$('#bReset').onclick=()=>{az=.7;el=.5;zoom=1;exT=0;$('#bEx').className='';$('#op').value=100;$('#op').oninput({target:$('#op')});hid.clear();iso=null;sel=null;refresh()};
-function cam(){const rad=11/zoom*(innerWidth<innerHeight?1.5:1),ty=.4+ex*.5;camera.position.set(rad*Math.cos(el)*Math.sin(az),ty+rad*Math.sin(el),rad*Math.cos(el)*Math.cos(az));camera.lookAt(0,ty,0)}
-function rs(){const w=innerWidth,h=innerHeight;camera.aspect=w/h;camera.setViewOffset(w,h,0,Math.round($('#panel').offsetHeight*.45),w,h);r.setPixelRatio(Math.min(devicePixelRatio||1,1.8));r.setSize(w,h)}
-addEventListener('resize',rs);rs();
-// 手势:单指旋转、双指缩放、轻点选中
-const cv=r.domElement,ptr=new Map(),ray=new T.Raycaster();let lp=0,dn=null;
-cv.addEventListener('pointerdown',e=>{cv.setPointerCapture(e.pointerId);ptr.set(e.pointerId,{x:e.clientX,y:e.clientY});if(ptr.size===1)dn={t:performance.now(),m:0};else{dn=null;const a=[...ptr.values()];lp=Math.hypot(a[0].x-a[1].x,a[0].y-a[1].y)}});
-cv.addEventListener('pointermove',e=>{const o=ptr.get(e.pointerId);if(!o)return;const dx=e.clientX-o.x,dy=e.clientY-o.y;o.x=e.clientX;o.y=e.clientY;
- if(ptr.size>1){const a=[...ptr.values()],d=Math.hypot(a[0].x-a[1].x,a[0].y-a[1].y);if(lp)zoom=cl(zoom*d/lp,.6,2.4);lp=d}
- else{if(dn)dn.m+=Math.abs(dx)+Math.abs(dy);az-=dx*.008;el=cl(el+dy*.006,-1.5,1.5)}});
-function up(e){if(dn&&ptr.size===1&&dn.m<8&&performance.now()-dn.t<500)pick(e);ptr.delete(e.pointerId);lp=0;dn=null}
-cv.addEventListener('pointerup',up);cv.addEventListener('pointercancel',e=>{ptr.delete(e.pointerId);lp=0;dn=null});
-cv.addEventListener('wheel',e=>{zoom=cl(zoom*(e.deltaY>0?.93:1.07),.6,2.4);e.preventDefault()},{passive:false});
-function pick(e){ray.setFromCamera({x:e.clientX/innerWidth*2-1,y:-(e.clientY/innerHeight)*2+1},camera);
- const h=ray.intersectObjects(parts.filter(g=>g.visible),true);const hit=h.find(i=>i.object.visible&&(i.object.material.opacity>.3));sel=hit?hit.object.parent:null;refresh()}
-function tick(){requestAnimationFrame(tick);ex+=(exT-ex)*.12;if(Math.abs(exT-ex)<.001)ex=exT;const p=ex*ex*(3-2*ex);parts.forEach(g=>g.position.lerpVectors(g.userData.base,g.userData.exp,p));cam();camera.updateMatrixWorld();
- if(ol.visible){ol.setFromObject(sel);bx.setFromObject(sel);bx.getCenter(c3);c3.y=bx.max.y;c3.project(camera);const l=$('#lab');l.style.left=(c3.x+1)/2*innerWidth+'px';l.style.top=((1-c3.y)/2*innerHeight-16)+'px'}
- r.render(scene,camera)}
-refresh();tick();
-}catch(err){console.error(err);showErr('渲染初始化失败(设备可能不支持 WebGL):'+err.message)}
+const canvas=document.getElementById('cad-canvas'),err=document.getElementById('cad-error'),stage=document.getElementById('stage');
+if(!window.THREE){err.textContent='无法加载 Three.js。请检查网络后刷新页面。';return;}
+const scene=new THREE.Scene();scene.background=new THREE.Color(0x10171f);scene.fog=new THREE.Fog(0x10171f,18,36);
+const camera=new THREE.PerspectiveCamera(38,1,.1,100);
+const renderer=new THREE.WebGLRenderer({canvas,antialias:true,alpha:false});renderer.setPixelRatio(Math.min(devicePixelRatio||1,2));renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.18;
+scene.add(new THREE.HemisphereLight(0xdceaff,0x26313b,2.1));
+const key=new THREE.DirectionalLight(0xffffff,3.2);key.position.set(5,9,7);scene.add(key);
+const rim=new THREE.DirectionalLight(0x53b9d4,2.1);rim.position.set(-6,3,-6);scene.add(rim);
+const mat=(c,metal=.25,rough=.35)=>new THREE.MeshStandardMaterial({color:c,metalness:metal,roughness:rough});
+const aluminum=mat(0x9aa9b7,.82,.24),bright=mat(0xdce4eb,.8,.2),graphite=mat(0x202a34,.55,.3),black=mat(0x10161d,.3,.32),green=mat(0x165346,.25,.4),green2=mat(0x267c68,.25,.35),gold=mat(0xc4a15d,.78,.22),copper=mat(0xb27c43,.75,.26),blue=mat(0x326b89,.45,.3);
+const assembly=new THREE.Group();scene.add(assembly);const layers=[];
+function layer(y){const g=new THREE.Group();g.position.y=y;assembly.add(g);layers.push({g,y});return g}
+function box(g,w,h,d,m,x,y,z){const o=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),m);o.position.set(x,y,z);g.add(o);return o}
+function cylinder(g,r,h,m,x,y,z){const o=new THREE.Mesh(new THREE.CylinderGeometry(r,r,h,24),m);o.position.set(x,y,z);g.add(o);return o}
+const base=layer(-1.12);
+box(base,5.5,.4,3.55,blue,0,0,0);box(base,5.24,.16,3.3,graphite,0,.24,0);box(base,4.98,.1,3.08,aluminum,0,.34,0);
+for(let i=0;i<22;i++)box(base,.055,.17,.24,gold,-1.65+i*.157,.02,1.82);
+box(base,3.85,.17,.27,black,0,.02,1.8);
+for(const x of [-2.35,2.35])for(const z of [-1.35,1.35])cylinder(base,.12,.12,bright,x,.45,z);
+const shield=layer(-.57);
+box(shield,5.15,.16,3.23,graphite,0,0,0);box(shield,4.98,.07,3.06,bright,0,.11,0);
+for(const x of [-2.3,2.3])for(const z of [-1.3,1.3])cylinder(shield,.13,.08,graphite,x,.17,z);
+const pcbLayer=layer(.03);
+box(pcbLayer,4.85,.15,2.94,green,0,0,0);box(pcbLayer,4.55,.025,2.7,green2,0,.087,0);
+for(let i=0;i<14;i++)box(pcbLayer,.018,.014,1.9,copper,-1.9+i*.29,.108,0);
+for(let i=0;i<9;i++)box(pcbLayer,2.4,.014,.018,copper,0,.11,-1.1+i*.27);
+for(let i=0;i<6;i++)for(let j=0;j<4;j++)cylinder(pcbLayer,.035,.025,gold,-2.05+i*.78,.12,-1.12+j*.72);
+const chips=[[-1.68,-.72,.65,.53],[-1.68,.62,.65,.53],[1.38,-.72,.72,.58],[1.38,.02,.72,.58],[1.38,.75,.72,.48],[-.1,1.02,.55,.34]];
+for(const [x,z,w,d] of chips){box(pcbLayer,w,.19,d,black,x,.22,z);box(pcbLayer,w*.82,.055,d*.78,graphite,x,.34,z);for(let i=0;i<5;i++){box(pcbLayer,.055,.035,.05,bright,x-w*.31+i*w*.155,.39,z-d*.23);box(pcbLayer,.055,.035,.05,bright,x-w*.31+i*w*.155,.39,z+d*.23)}for(let i=0;i<4;i++){box(pcbLayer,.045,.035,.05,gold,x-w*.42,.28,z-d*.25+i*d*.16);box(pcbLayer,.045,.035,.05,gold,x+w*.42,.28,z-d*.25+i*d*.16)}}
+box(pcbLayer,1.2,.2,1.05,black,.05,.27,-.02);box(pcbLayer,1.08,.055,.93,graphite,.05,.39,-.02);
+for(let i=0;i<18;i++){const p=-.44+i*.057;box(pcbLayer,.026,.07,.08,gold,p,.36,-.57);box(pcbLayer,.026,.07,.08,gold,p,.36,.53)}
+for(let i=0;i<15;i++)box(pcbLayer,.12,.11,.065,bright,2.3,.18,-1.25+i*.175);
+const thermal=layer(.66);box(thermal,4.98,.14,3.12,copper,0,0,0);box(thermal,5.12,.12,3.24,graphite,0,.1,0);
+const lid=layer(1.2);box(lid,5.4,.22,3.52,aluminum,0,0,0);box(lid,5.05,.07,3.18,bright,0,.15,0);box(lid,4.82,.06,2.95,graphite,0,.21,0);
+for(let i=0;i<15;i++){const x=-2.2+i*.315;box(lid,.105,.34,2.55,bright,x,.39,0);box(lid,.14,.055,2.58,aluminum,x,.57,0)}
+for(const x of [-2.48,2.48])for(const z of [-1.5,1.5]){cylinder(lid,.105,.07,graphite,x,.18,z);cylinder(lid,.062,.08,bright,x,.23,z)}
+const grid=new THREE.GridHelper(18,36,0x334654,0x243441);grid.position.y=-1.72;scene.add(grid);
+const floor=new THREE.Mesh(new THREE.PlaneGeometry(200,200),mat(0x10171f,.05,.9));floor.rotation.x=-Math.PI/2;floor.position.y=-1.74;scene.add(floor);
+let radius=11.7,az=.68,pol=1.04,auto=true,drag=false,lastX=0,lastY=0,pointers=new Map(),lastPinch=0;
+function place(){pol=Math.max(.12,Math.min(Math.PI-.12,pol));radius=Math.max(5,Math.min(24,radius));camera.position.set(radius*Math.sin(pol)*Math.sin(az),radius*Math.cos(pol),radius*Math.sin(pol)*Math.cos(az));camera.lookAt(0,0,0)}
+function setExplode(v){document.getElementById('cad-pct').textContent=v+'%';const gap=v*.008;layers.forEach((l,i)=>l.g.position.y=l.y+(i-2.5)*gap)}
+function resize(){const w=stage.clientWidth,h=stage.clientHeight;renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix()}
+resize();place();setExplode(18);err.style.display='none';
+canvas.addEventListener('pointerdown',e=>{pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});canvas.setPointerCapture(e.pointerId);if(pointers.size===1){drag=true;lastX=e.clientX;lastY=e.clientY}else if(pointers.size===2){const a=[...pointers.values()];lastPinch=Math.hypot(a[0].x-a[1].x,a[0].y-a[1].y);drag=false}});
+canvas.addEventListener('pointermove',e=>{if(!pointers.has(e.pointerId))return;const prev=pointers.get(e.pointerId);pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});if(pointers.size===1&&drag){az-=(e.clientX-lastX)*.008;pol-=(e.clientY-lastY)*.008;lastX=e.clientX;lastY=e.clientY;place()}else if(pointers.size===2){const a=[...pointers.values()],d=Math.hypot(a[0].x-a[1].x,a[0].y-a[1].y);if(lastPinch)radius*=lastPinch/d;lastPinch=d;place()}});
+function pointerEnd(e){pointers.delete(e.pointerId);drag=false;lastPinch=0}canvas.addEventListener('pointerup',pointerEnd);canvas.addEventListener('pointercancel',pointerEnd);
+canvas.addEventListener('wheel',e=>{radius*=e.deltaY>0?1.08:.92;place()},{passive:true});
+document.getElementById('cad-explode').addEventListener('input',e=>setExplode(+e.target.value));
+document.getElementById('cad-spin').onclick=e=>{auto=!auto;e.target.textContent='自动旋转：'+(auto?'开':'关');e.target.classList.toggle('active',!auto)};
+document.getElementById('cad-reset').onclick=()=>{radius=11.7;az=.68;pol=1.04;document.getElementById('cad-explode').value=18;setExplode(18);place()};
+document.getElementById('cad-assemble').onclick=()=>{document.getElementById('cad-explode').value=0;setExplode(0)};
+document.getElementById('cad-explode-btn').onclick=()=>{document.getElementById('cad-explode').value=70;setExplode(70)};
+document.querySelectorAll('[data-view]').forEach(b=>b.onclick=()=>{document.querySelectorAll('[data-view]').forEach(x=>x.classList.remove('active'));b.classList.add('active');radius=11.7;const v=b.dataset.view;if(v==='front'){az=0;pol=Math.PI/2}else if(v==='side'){az=Math.PI/2;pol=Math.PI/2}else if(v==='top'){az=0;pol=.12}else if(v==='bottom'){az=0;pol=Math.PI-.12}else{az=.68;pol=1.04}place()});
+if(window.ResizeObserver)new ResizeObserver(resize).observe(stage);else window.addEventListener('resize',resize);
+function tick(){requestAnimationFrame(tick);if(auto&&!drag)assembly.rotation.y+=.0022;renderer.render(scene,camera)}tick();
 })();
-</script></body></html>
+</script>
+</body>
+</html>
