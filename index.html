@@ -15,7 +15,7 @@ header{position:absolute;top:0;left:0;right:0;padding:calc(14px + env(safe-area-
 <div class="row"><button class="btn active" data-part="all">全部</button><button class="btn" data-part="housing">壳体</button><button class="btn" data-part="power">功率模块</button><button class="btn" data-part="pcb">控制板</button><button class="btn" data-part="bus">铜排</button></div>
 <div class="row" style="align-items:center"><span class="label">EXPLODE</span><input class="range" id="amount" type="range" min="0" max="100" value="0" aria-label="拆解程度"><span id="pct" style="font-size:10px;color:#9eb1c2;min-width:28px;text-align:right">0%</span></div>
 <div class="sub" style="margin:9px 1px 0"><span>比例与内部布局为示意</span><span>MCU / INVERTER</span></div></section>
-<script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js" onerror="this.onerror=null;this.src=\'https://unpkg.com/three@0.160.0/build/three.min.js\'"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js" onerror="this.onerror=null;this.src='https://unpkg.com/three@0.160.0/build/three.min.js'"></script>
 <script>
 (()=>{const host=document.querySelector('#view');if(!window.THREE){host.innerHTML='<div style="padding:30vh 24px;text-align:center;color:#dbe7f1">3D 引擎加载失败，请检查网络后刷新。</div>';return}
 const scene=new THREE.Scene();scene.background=new THREE.Color('#0c1117');scene.fog=new THREE.Fog('#0c1117',17,32);
