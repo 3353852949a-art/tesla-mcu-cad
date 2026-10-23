@@ -22,14 +22,14 @@ button{background:#17222d;color:#dce8f1;border:1px solid #435260;border-radius:1
 <header><div class="brand"><span class="mark">M3</span> MCU / CAD</div><div class="subtitle">INTERACTIVE 3D ASSEMBLY</div></header>
 <main><div id="stage"><canvas id="cad-canvas"></canvas></div>
 <div class="views"><button data-view="iso" class="active">3D</button><button data-view="front">正视</button><button data-view="side">侧视</button><button data-view="top">俯视</button><button data-view="bottom">底视</button></div>
-<div class="hint">单指拖动旋转 · 双指缩放 · 滚轮缩放</div>
+<div class="hint">拖动旋转 · 双指缩放 · 轻触选择零件</div>
 <div id="cad-error" class="error">正在加载三维模型…</div>
 <div class="panel">
  <div class="row"><label class="label" for="cad-explode">爆炸分层</label><input id="cad-explode" class="range" type="range" min="0" max="100" value="18"><span id="cad-pct" class="pct">18%</span></div>
  <div class="row actions"><button id="cad-spin">自动旋转：开</button><button id="cad-reset">重置视角</button><button id="cad-assemble">完整装配</button><button id="cad-explode-btn">爆炸分解</button></div>
  <div class="row actions"><button id="cad-wire">线框：关</button><button id="cad-alpha">透明外壳：关</button><button id="cad-hide">隐藏选中零件</button><button id="cad-show">显示全部零件</button></div>
  <div class="row"><label class="label" for="cad-opacity">整体透明度</label><input id="cad-opacity" class="range" type="range" min="25" max="100" value="100"><span id="cad-opacity-pct" class="pct">100%</span></div>
- <div id="cad-selection" class="note" aria-live="polite">选中零件：未选择（双击模型上的零件进行选择）</div>
+ <div id="cad-selection" class="note" aria-live="polite">选中零件：未选择（轻触或双击模型上的零件进行选择）</div>
  <div class="note">可拖动旋转、缩放；滑动分层条查看内部组件。此为视觉演示模型，并非原厂尺寸工程图。</div>
 </div></main>
 <script src="https://cdn.jsdelivr.net/npm/three@0.150.1/build/three.min.js"></script>
@@ -39,7 +39,7 @@ const canvas=document.getElementById('cad-canvas'),err=document.getElementById('
 if(!window.THREE){err.textContent='无法加载 Three.js。请检查网络后刷新页面。';return;}
 const scene=new THREE.Scene();scene.background=new THREE.Color(0x10171f);scene.fog=new THREE.Fog(0x10171f,18,36);
 const camera=new THREE.PerspectiveCamera(38,1,.1,100);
-let renderer;try{renderer=new THREE.WebGLRenderer({canvas,antialias:true,alpha:false})}catch(e){err.textContent='浏览器无法启动 WebGL，或显卡加速不可用。请更新浏览器并启用硬件加速后刷新。';console.error(e);return}renderer.setPixelRatio(Math.min(devicePixelRatio||1,2));renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.18;
+let renderer;const isMobile=/Android|iPhone|iPad|iPod/i.test(navigator.userAgent);try{renderer=new THREE.WebGLRenderer({canvas,antialias:!isMobile,alpha:false,powerPreference:'high-performance'})}catch(e){err.textContent='浏览器无法启动 WebGL，或显卡加速不可用。请更新浏览器并启用硬件加速后刷新。';console.error(e);return}renderer.setPixelRatio(Math.min(devicePixelRatio||1,isMobile?1.5:2));renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.18;
 scene.add(new THREE.HemisphereLight(0xdceaff,0x26313b,2.1));
 const key=new THREE.DirectionalLight(0xffffff,3.2);key.position.set(5,9,7);scene.add(key);
 const rim=new THREE.DirectionalLight(0x53b9d4,2.1);rim.position.set(-6,3,-6);scene.add(rim);
@@ -73,20 +73,20 @@ for(let i=0;i<15;i++){const x=-2.2+i*.315;box(lid,.105,.34,2.55,bright,x,.39,0);
 for(const x of [-2.48,2.48])for(const z of [-1.5,1.5]){cylinder(lid,.105,.07,graphite,x,.18,z);cylinder(lid,.062,.08,bright,x,.23,z)}
 const grid=new THREE.GridHelper(18,36,0x334654,0x243441);grid.position.y=-1.72;scene.add(grid);
 const floor=new THREE.Mesh(new THREE.PlaneGeometry(200,200),mat(0x10171f,.05,.9));floor.rotation.x=-Math.PI/2;floor.position.y=-1.74;scene.add(floor);
-let radius=11.7,az=.68,pol=1.04,auto=true,drag=false,lastX=0,lastY=0,pointers=new Map(),lastPinch=0;
+let radius=11.7,az=.68,pol=1.04,auto=true,drag=false,lastX=0,lastY=0,pointers=new Map(),lastPinch=0,pointerStart=null,pointerMoved=false;
 let wireframeOn=false,transparentOn=false,opacityValue=1,selectedMesh=null;
 const originalMaterials=new Map(),hiddenMeshes=new Set();
 function eachMesh(fn){assembly.traverse(o=>{if(o.isMesh)fn(o)})}
-function rememberMaterial(o){if(!originalMaterials.has(o))originalMaterials.set(o,{material:o.material,visible:o.visible})}
-function applyAppearance(){eachMesh(o=>{rememberMaterial(o);const baseMat=originalMaterials.get(o).material;const mats=Array.isArray(baseMat)?baseMat:[baseMat];const updated=mats.map(m=>{const c=m.clone();c.wireframe=wireframeOn;c.transparent=transparentOn||opacityValue<1;c.opacity=opacityValue*(transparentOn ? 0.48 : 1);c.depthWrite=c.opacity>=0.999;return c});o.material=Array.isArray(baseMat)?updated:updated[0];o.visible=!hiddenMeshes.has(o)});if(selectedMesh&&selectedMesh.visible){const mats=Array.isArray(selectedMesh.material)?selectedMesh.material:[selectedMesh.material];mats.forEach(m=>{if(m.emissive)m.emissive.setHex(0x24584e)})}}
+function rememberMaterial(o){if(!originalMaterials.has(o)){const original=o.material,source=Array.isArray(original)?original:[original];originalMaterials.set(o,{material:original,working:source.map(m=>m.clone()),transparent:null})}}
+function applyAppearance(){eachMesh(o=>{rememberMaterial(o);const entry=originalMaterials.get(o),mats=entry.working,transparent=transparentOn||opacityValue<1;if(entry.transparent!==transparent){mats.forEach(m=>m.needsUpdate=true);entry.transparent=transparent}mats.forEach(m=>{m.wireframe=wireframeOn;m.transparent=transparent;m.opacity=opacityValue*(transparentOn?0.48:1);m.depthWrite=m.opacity>=0.999;if(m.emissive)m.emissive.setHex(o===selectedMesh?0x24584e:0x000000)});o.material=Array.isArray(entry.material)?mats: mats[0];o.visible=!hiddenMeshes.has(o)})}
 function selectAt(clientX,clientY){const rect=canvas.getBoundingClientRect(),mouse=new THREE.Vector2(((clientX-rect.left)/rect.width)*2-1,-((clientY-rect.top)/rect.height)*2+1),ray=new THREE.Raycaster();ray.setFromCamera(mouse,camera);const hits=ray.intersectObjects(assembly.children,true).filter(h=>h.object.isMesh&&h.object.visible);if(!hits.length)return;selectedMesh=hits[0].object;document.getElementById('cad-selection').textContent='已选中零件：'+(selectedMesh.name||selectedMesh.geometry.type+' 零件')+'（可隐藏或调整整体显示效果）';eachMesh(o=>{if(o.userData._selectedOriginal){const mats=Array.isArray(o.material)?o.material:[o.material];mats.forEach(m=>{if(m.emissive)m.emissive.setHex(0x000000)});o.userData._selectedOriginal=false}});selectedMesh.userData._selectedOriginal=true;applyAppearance()}
 function place(){pol=Math.max(.12,Math.min(Math.PI-.12,pol));radius=Math.max(5,Math.min(24,radius));camera.position.set(radius*Math.sin(pol)*Math.sin(az),radius*Math.cos(pol),radius*Math.sin(pol)*Math.cos(az));camera.lookAt(0,0,0)}
 function setExplode(v){document.getElementById('cad-pct').textContent=v+'%';const gap=v*.008;layers.forEach((l,i)=>l.g.position.y=l.y+(i-2.5)*gap)}
 function resize(){const w=stage.clientWidth,h=stage.clientHeight;renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix()}
 resize();place();setExplode(18);err.style.display='none';applyAppearance();
-canvas.addEventListener('pointerdown',e=>{pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});canvas.setPointerCapture(e.pointerId);if(pointers.size===1){drag=true;lastX=e.clientX;lastY=e.clientY}else if(pointers.size===2){const a=[...pointers.values()];lastPinch=Math.hypot(a[0].x-a[1].x,a[0].y-a[1].y);drag=false}});
-canvas.addEventListener('pointermove',e=>{if(!pointers.has(e.pointerId))return;const prev=pointers.get(e.pointerId);pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});if(pointers.size===1&&drag){az-=(e.clientX-lastX)*.008;pol-=(e.clientY-lastY)*.008;lastX=e.clientX;lastY=e.clientY;place()}else if(pointers.size===2){const a=[...pointers.values()],d=Math.hypot(a[0].x-a[1].x,a[0].y-a[1].y);if(lastPinch)radius*=lastPinch/d;lastPinch=d;place()}});
-function pointerEnd(e){pointers.delete(e.pointerId);drag=false;lastPinch=0}canvas.addEventListener('pointerup',pointerEnd);canvas.addEventListener('pointercancel',pointerEnd);
+canvas.addEventListener('pointerdown',e=>{pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});canvas.setPointerCapture(e.pointerId);if(pointers.size===1){drag=true;lastX=e.clientX;lastY=e.clientY;pointerStart={x:e.clientX,y:e.clientY};pointerMoved=false}else if(pointers.size===2){pointerStart=null;const a=[...pointers.values()];lastPinch=Math.hypot(a[0].x-a[1].x,a[0].y-a[1].y);drag=false}});
+canvas.addEventListener('pointermove',e=>{if(!pointers.has(e.pointerId))return;const prev=pointers.get(e.pointerId);pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});if(pointerStart&&Math.hypot(e.clientX-pointerStart.x,e.clientY-pointerStart.y)>6)pointerMoved=true;if(pointers.size===1&&drag){az-=(e.clientX-lastX)*.008;pol-=(e.clientY-lastY)*.008;lastX=e.clientX;lastY=e.clientY;place()}else if(pointers.size===2){const a=[...pointers.values()],d=Math.hypot(a[0].x-a[1].x,a[0].y-a[1].y);if(lastPinch)radius*=lastPinch/d;lastPinch=d;place()}});
+function pointerEnd(e){const shouldSelect=e.type==='pointerup'&&pointerStart&&!pointerMoved&&pointers.size===1;if(shouldSelect)selectAt(e.clientX,e.clientY);pointers.delete(e.pointerId);drag=false;lastPinch=0;pointerStart=null;pointerMoved=false}canvas.addEventListener('pointerup',pointerEnd);canvas.addEventListener('pointercancel',pointerEnd);
 canvas.addEventListener('wheel',e=>{radius*=e.deltaY>0?1.08:.92;place()},{passive:true});
 canvas.addEventListener('dblclick',e=>selectAt(e.clientX,e.clientY));
 document.getElementById('cad-wire').onclick=e=>{wireframeOn=!wireframeOn;e.target.textContent='线框：'+(wireframeOn?'开':'关');e.target.classList.toggle('active',wireframeOn);applyAppearance()};
@@ -101,8 +101,8 @@ document.getElementById('cad-assemble').onclick=()=>{document.getElementById('ca
 document.getElementById('cad-explode-btn').onclick=()=>{document.getElementById('cad-explode').value=70;setExplode(70)};
 document.querySelectorAll('[data-view]').forEach(b=>b.onclick=()=>{document.querySelectorAll('[data-view]').forEach(x=>x.classList.remove('active'));b.classList.add('active');radius=11.7;const v=b.dataset.view;if(v==='front'){az=0;pol=Math.PI/2}else if(v==='side'){az=Math.PI/2;pol=Math.PI/2}else if(v==='top'){az=0;pol=.12}else if(v==='bottom'){az=0;pol=Math.PI-.12}else{az=.68;pol=1.04}place()});
 if(window.ResizeObserver)new ResizeObserver(resize).observe(stage);else window.addEventListener('resize',resize);
-function tick(){requestAnimationFrame(tick);if(auto&&!drag)assembly.rotation.y+=.0022;renderer.render(scene,camera)}
-try{tick()}catch(e){err.style.display='block';err.textContent='三维模型初始化失败，请刷新页面重试。';console.error(e)}
+function tick(){if(auto&&!drag&&!document.hidden)assembly.rotation.y+=.0022;renderer.render(scene,camera)}
+try{renderer.setAnimationLoop(tick)}catch(e){err.style.display='block';err.textContent='三维模型初始化失败，请刷新页面重试。';console.error(e)}
 })();
 </script>
 </body>
