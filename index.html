@@ -13,7 +13,7 @@ main{height:calc(100dvh - 58px);min-height:440px;position:relative;background:ra
 .views{position:absolute;top:14px;right:12px;display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;z-index:3;max-width:85%}
 button{background:#17222d;color:#dce8f1;border:1px solid #435260;border-radius:12px;padding:9px 11px;font-size:12px;cursor:pointer;min-height:38px}button:active,button.active{background:#2c4c56;border-color:#91d1c5}
 .hint{position:absolute;top:65px;left:12px;font-size:11px;color:#9cabb9;background:#111a23b8;border:1px solid #2a3b48;padding:7px 10px;border-radius:10px;pointer-events:none}
-.panel{position:absolute;bottom:12px;left:12px;right:12px;padding:12px;border:1px solid #34424e;border-radius:18px;background:#111a23ed;z-index:3;max-width:680px;margin:auto;backdrop-filter:blur(8px)}
+.panel{position:absolute;bottom:10px;left:10px;right:10px;padding:9px;border:1px solid #34424e;border-radius:16px;background:#111a23ed;z-index:3;max-width:680px;margin:auto;backdrop-filter:blur(8px);max-height:48dvh;overflow:auto}.panel-toggle{width:100%;min-height:34px;padding:6px 10px;font-weight:600}.panel.collapsed{padding:6px;background:#111a23c9}.panel.collapsed .panel-controls{display:none}.panel-head{display:flex;align-items:center;gap:8px}.panel-head .panel-toggle{flex:1}.panel-head .note{margin:0;flex:2}
 .row{display:flex;align-items:center;gap:10px}.row+.row{margin-top:10px}.label{font-size:12px;min-width:66px}.range{flex:1;min-width:60px;accent-color:#91d1c5}.pct{font-size:12px;min-width:32px;text-align:right;color:#b7dcd5}.actions{display:flex;gap:8px;flex-wrap:wrap}.actions button{flex:1;min-width:95px}.note{font-size:11px;color:#8294a5;margin-top:8px}.error{position:absolute;top:45%;left:16px;right:16px;text-align:center;color:#c5d4df;background:#111a23d9;padding:12px;border-radius:10px}
 @media(min-width:800px){.panel{left:50%;right:auto;transform:translateX(-50%);width:min(680px,calc(100% - 24px))}.views{right:max(12px,calc((100% - 1100px)/2))}header{padding:0 max(14px,calc((100% - 1100px)/2))}}
 </style>
@@ -24,7 +24,9 @@ button{background:#17222d;color:#dce8f1;border:1px solid #435260;border-radius:1
 <div class="views"><button data-view="iso" class="active">3D</button><button data-view="front">正视</button><button data-view="side">侧视</button><button data-view="top">俯视</button><button data-view="bottom">底视</button></div>
 <div class="hint">拖动旋转 · 双指缩放 · 轻触选择零件</div>
 <div id="cad-error" class="error">正在加载三维模型…</div>
-<div class="panel">
+<div class="panel collapsed" id="cad-panel">
+ <div class="panel-head"><button id="cad-panel-toggle" class="panel-toggle" aria-expanded="false">展开控制面板 ＋</button><div class="note">旋转模型 · 触摸零件</div></div>
+ <div class="panel-controls">
  <div class="row"><label class="label" for="cad-explode">爆炸分层</label><input id="cad-explode" class="range" type="range" min="0" max="100" value="18"><span id="cad-pct" class="pct">18%</span></div>
  <div class="row actions"><button id="cad-spin">自动旋转：开</button><button id="cad-reset">重置视角</button><button id="cad-assemble">完整装配</button><button id="cad-explode-btn">爆炸分解</button></div>
  <div class="row actions"><button id="cad-wire">线框：关</button><button id="cad-alpha">透明外壳：关</button><button id="cad-hide">隐藏选中零件</button><button id="cad-show">显示全部零件</button></div>
@@ -32,6 +34,7 @@ button{background:#17222d;color:#dce8f1;border:1px solid #435260;border-radius:1
  <div class="row"><label class="label" for="cad-opacity">整体透明度</label><input id="cad-opacity" class="range" type="range" min="25" max="100" value="100"><span id="cad-opacity-pct" class="pct">100%</span></div>
  <div id="cad-selection" class="note" aria-live="polite">选中零件：未选择（轻触或双击模型上的零件进行选择）</div>
  <div class="note">可拖动旋转、缩放；滑动分层条查看内部组件。此为视觉演示模型，并非原厂尺寸工程图。</div>
+ </div>
 </div></main>
 <script src="https://cdn.jsdelivr.net/npm/three@0.150.1/build/three.min.js"></script>
 <script>
@@ -119,6 +122,7 @@ function place(){pol=Math.max(.12,Math.min(Math.PI-.12,pol));radius=Math.max(5,M
 function setExplode(v){document.getElementById('cad-pct').textContent=v+'%';const gap=v*.008;layers.forEach((l,i)=>l.g.position.y=l.y+(i-2.5)*gap)}
 function resize(){const w=stage.clientWidth,h=stage.clientHeight;renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix()}
 resize();place();setExplode(18);err.style.display='none';applyAppearance();
+const panel=document.getElementById('cad-panel'),panelToggle=document.getElementById('cad-panel-toggle');panelToggle.onclick=()=>{const collapsed=panel.classList.toggle('collapsed');panelToggle.textContent=collapsed?'展开控制面板 ＋':'收起控制面板 −';panelToggle.setAttribute('aria-expanded',String(!collapsed))};
 canvas.addEventListener('pointerdown',e=>{pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});canvas.setPointerCapture(e.pointerId);if(pointers.size===1){drag=true;lastX=e.clientX;lastY=e.clientY;pointerStart={x:e.clientX,y:e.clientY};pointerMoved=false}else if(pointers.size===2){pointerStart=null;const a=[...pointers.values()];lastPinch=Math.hypot(a[0].x-a[1].x,a[0].y-a[1].y);drag=false}});
 canvas.addEventListener('pointermove',e=>{if(!pointers.has(e.pointerId))return;const prev=pointers.get(e.pointerId);pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});if(pointerStart&&Math.hypot(e.clientX-pointerStart.x,e.clientY-pointerStart.y)>6)pointerMoved=true;if(pointers.size===1&&drag){az-=(e.clientX-lastX)*.008;pol-=(e.clientY-lastY)*.008;lastX=e.clientX;lastY=e.clientY;place()}else if(pointers.size===2){const a=[...pointers.values()],d=Math.hypot(a[0].x-a[1].x,a[0].y-a[1].y);if(lastPinch)radius*=lastPinch/d;lastPinch=d;place()}});
 function pointerEnd(e){const shouldSelect=e.type==='pointerup'&&pointerStart&&!pointerMoved&&pointers.size===1;if(shouldSelect)selectAt(e.clientX,e.clientY);pointers.delete(e.pointerId);drag=false;lastPinch=0;pointerStart=null;pointerMoved=false}canvas.addEventListener('pointerup',pointerEnd);canvas.addEventListener('pointercancel',pointerEnd);
