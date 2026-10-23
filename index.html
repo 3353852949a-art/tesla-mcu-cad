@@ -28,6 +28,7 @@ button{background:#17222d;color:#dce8f1;border:1px solid #435260;border-radius:1
  <div class="row"><label class="label" for="cad-explode">爆炸分层</label><input id="cad-explode" class="range" type="range" min="0" max="100" value="18"><span id="cad-pct" class="pct">18%</span></div>
  <div class="row actions"><button id="cad-spin">自动旋转：开</button><button id="cad-reset">重置视角</button><button id="cad-assemble">完整装配</button><button id="cad-explode-btn">爆炸分解</button></div>
  <div class="row actions"><button id="cad-wire">线框：关</button><button id="cad-alpha">透明外壳：关</button><button id="cad-hide">隐藏选中零件</button><button id="cad-show">显示全部零件</button></div>
+ <div class="row actions"><button id="cad-focus">聚焦选中零件</button><button id="cad-isolate">仅显示选中零件</button><button id="cad-clear-selection">取消选择</button></div>
  <div class="row"><label class="label" for="cad-opacity">整体透明度</label><input id="cad-opacity" class="range" type="range" min="25" max="100" value="100"><span id="cad-opacity-pct" class="pct">100%</span></div>
  <div id="cad-selection" class="note" aria-live="polite">选中零件：未选择（轻触或双击模型上的零件进行选择）</div>
  <div class="note">可拖动旋转、缩放；滑动分层条查看内部组件。此为视觉演示模型，并非原厂尺寸工程图。</div>
@@ -67,6 +68,33 @@ for(const [x,z,w,d] of chips){box(pcbLayer,w,.19,d,black,x,.22,z);box(pcbLayer,w
 box(pcbLayer,1.2,.2,1.05,black,.05,.27,-.02);box(pcbLayer,1.08,.055,.93,graphite,.05,.39,-.02);
 for(let i=0;i<18;i++){const p=-.44+i*.057;box(pcbLayer,.026,.07,.08,gold,p,.36,-.57);box(pcbLayer,.026,.07,.08,gold,p,.36,.53)}
 for(let i=0;i<15;i++)box(pcbLayer,.12,.11,.065,bright,2.3,.18,-1.25+i*.175);
+
+// Additional board-level detail: illustrative passives, mounting posts and edge connectors.
+function namedBox(g,w,h,d,m,x,y,z,name){const o=box(g,w,h,d,m,x,y,z);o.name=name;return o}
+function namedCylinder(g,r,h,m,x,y,z,name){const o=cylinder(g,r,h,m,x,y,z);o.name=name;return o}
+for(const [x,z] of [[-2.18,-1.08],[-2.18,1.08],[2.18,-1.08],[2.18,1.08]]){
+  namedCylinder(pcbLayer,.095,.16,gold,x,.19,z,'PCB 安装柱');
+  namedCylinder(pcbLayer,.052,.17,bright,x,.21,z,'安装柱螺钉');
+}
+for(let row=0;row<3;row++)for(let col=0;col<8;col++){
+  const x=-1.7+col*.34,z=-.15+row*.25;
+  namedBox(pcbLayer,.17,.075,.105,black,x,.19,z,'贴片元件');
+  namedBox(pcbLayer,.035,.078,.11,gold,x-.09,.19,z,'贴片焊端');
+  namedBox(pcbLayer,.035,.078,.11,gold,x+.09,.19,z,'贴片焊端');
+}
+for(let i=0;i<3;i++){
+  const x=-1.75+i*1.75;
+  namedBox(pcbLayer,.88,.34,.42,blue,x,.22,1.48,'板边连接器外壳');
+  namedBox(pcbLayer,.68,.20,.035,black,x,.24,1.704,'连接器插口');
+  for(let p=0;p<6;p++)namedBox(pcbLayer,.045,.045,.035,gold,x-.225+p*.09,.23,1.727,'连接器触点');
+  namedBox(pcbLayer,.88,.34,.42,blue,x,.22,-1.48,'板边连接器外壳');
+  namedBox(pcbLayer,.68,.20,.035,black,x,.24,-1.704,'连接器插口');
+  for(let p=0;p<6;p++)namedBox(pcbLayer,.045,.045,.035,gold,x-.225+p*.09,.23,-1.727,'连接器触点');
+}
+for(const x of [-2.32,2.32]){
+  namedBox(pcbLayer,.28,.30,.78,graphite,x,.22,0,'侧边接口模块');
+  namedBox(pcbLayer,.06,.18,.52,bright,x+(x>0?.16:-.16),.24,0,'接口金属边框');
+}
 const thermal=layer(.66);box(thermal,4.98,.14,3.12,copper,0,0,0);box(thermal,5.12,.12,3.24,graphite,0,.1,0);
 const lid=layer(1.2);box(lid,5.4,.22,3.52,aluminum,0,0,0);box(lid,5.05,.07,3.18,bright,0,.15,0);box(lid,4.82,.06,2.95,graphite,0,.21,0);
 for(let i=0;i<15;i++){const x=-2.2+i*.315;box(lid,.105,.34,2.55,bright,x,.39,0);box(lid,.14,.055,2.58,aluminum,x,.57,0)}
@@ -76,9 +104,11 @@ const floor=new THREE.Mesh(new THREE.PlaneGeometry(200,200),mat(0x10171f,.05,.9)
 let radius=11.7,az=.68,pol=1.04,auto=true,drag=false,lastX=0,lastY=0,pointers=new Map(),lastPinch=0,pointerStart=null,pointerMoved=false;
 let wireframeOn=false,transparentOn=false,opacityValue=1,selectedMesh=null;
 const originalMaterials=new Map(),hiddenMeshes=new Set();
+let isolatedMesh=null;
 function eachMesh(fn){assembly.traverse(o=>{if(o.isMesh)fn(o)})}
 function rememberMaterial(o){if(!originalMaterials.has(o)){const original=o.material,source=Array.isArray(original)?original:[original];originalMaterials.set(o,{material:original,working:source.map(m=>m.clone()),transparent:null})}}
-function applyAppearance(){eachMesh(o=>{rememberMaterial(o);const entry=originalMaterials.get(o),mats=entry.working,transparent=transparentOn||opacityValue<1;if(entry.transparent!==transparent){mats.forEach(m=>m.needsUpdate=true);entry.transparent=transparent}mats.forEach(m=>{m.wireframe=wireframeOn;m.transparent=transparent;m.opacity=opacityValue*(transparentOn?0.48:1);m.depthWrite=m.opacity>=0.999;if(m.emissive)m.emissive.setHex(o===selectedMesh?0x24584e:0x000000)});o.material=Array.isArray(entry.material)?mats: mats[0];o.visible=!hiddenMeshes.has(o)})}
+function applyAppearance(){eachMesh(o=>{rememberMaterial(o);const entry=originalMaterials.get(o),mats=entry.working,transparent=transparentOn||opacityValue<1;if(entry.transparent!==transparent){mats.forEach(m=>m.needsUpdate=true);entry.transparent=transparent}mats.forEach(m=>{m.wireframe=wireframeOn;m.transparent=transparent;m.opacity=opacityValue*(transparentOn?0.48:1);m.depthWrite=m.opacity>=0.999;if(m.emissive)m.emissive.setHex(o===selectedMesh?0x24584e:0x000000)});o.material=Array.isArray(entry.material)?mats: mats[0];o.visible=!hiddenMeshes.has(o)&&(!isolatedMesh||o===isolatedMesh||isDescendantOf(o,isolatedMesh))})}
+function isDescendantOf(o,parent){let p=o;while(p){if(p===parent)return true;p=p.parent}return false}
 function selectAt(clientX,clientY){const rect=canvas.getBoundingClientRect(),mouse=new THREE.Vector2(((clientX-rect.left)/rect.width)*2-1,-((clientY-rect.top)/rect.height)*2+1),ray=new THREE.Raycaster();ray.setFromCamera(mouse,camera);const hits=ray.intersectObjects(assembly.children,true).filter(h=>h.object.isMesh&&h.object.visible);if(!hits.length)return;selectedMesh=hits[0].object;document.getElementById('cad-selection').textContent='已选中零件：'+(selectedMesh.name||selectedMesh.geometry.type+' 零件')+'（可隐藏或调整整体显示效果）';eachMesh(o=>{if(o.userData._selectedOriginal){const mats=Array.isArray(o.material)?o.material:[o.material];mats.forEach(m=>{if(m.emissive)m.emissive.setHex(0x000000)});o.userData._selectedOriginal=false}});selectedMesh.userData._selectedOriginal=true;applyAppearance()}
 function place(){pol=Math.max(.12,Math.min(Math.PI-.12,pol));radius=Math.max(5,Math.min(24,radius));camera.position.set(radius*Math.sin(pol)*Math.sin(az),radius*Math.cos(pol),radius*Math.sin(pol)*Math.cos(az));camera.lookAt(0,0,0)}
 function setExplode(v){document.getElementById('cad-pct').textContent=v+'%';const gap=v*.008;layers.forEach((l,i)=>l.g.position.y=l.y+(i-2.5)*gap)}
@@ -93,10 +123,13 @@ document.getElementById('cad-wire').onclick=e=>{wireframeOn=!wireframeOn;e.targe
 document.getElementById('cad-alpha').onclick=e=>{transparentOn=!transparentOn;e.target.textContent='透明外壳：'+(transparentOn?'开':'关');e.target.classList.toggle('active',transparentOn);applyAppearance()};
 document.getElementById('cad-opacity').addEventListener('input',e=>{opacityValue=Number(e.target.value)/100;document.getElementById('cad-opacity-pct').textContent=e.target.value+'%';applyAppearance()});
 document.getElementById('cad-hide').onclick=()=>{if(!selectedMesh){document.getElementById('cad-selection').textContent='请先双击模型上的一个零件';return}hiddenMeshes.add(selectedMesh);selectedMesh.visible=false;document.getElementById('cad-selection').textContent='已隐藏：'+selectedMesh.name;selectedMesh=null};
-document.getElementById('cad-show').onclick=()=>{hiddenMeshes.clear();eachMesh(o=>o.visible=true);document.getElementById('cad-selection').textContent='已显示全部零件';applyAppearance()};
+document.getElementById('cad-show').onclick=()=>{hiddenMeshes.clear();isolatedMesh=null;eachMesh(o=>o.visible=true);document.getElementById('cad-selection').textContent='已显示全部零件';applyAppearance()};
+document.getElementById('cad-focus').onclick=()=>{if(!selectedMesh){document.getElementById('cad-selection').textContent='请先选择一个零件';return}const p=new THREE.Vector3();selectedMesh.getWorldPosition(p);camera.lookAt(p);document.getElementById('cad-selection').textContent='已聚焦：'+selectedMesh.name+'（拖动可继续旋转）'};
+document.getElementById('cad-isolate').onclick=()=>{if(!selectedMesh){document.getElementById('cad-selection').textContent='请先选择一个零件';return}isolatedMesh=selectedMesh;hiddenMeshes.clear();applyAppearance();document.getElementById('cad-selection').textContent='仅显示：'+selectedMesh.name};
+document.getElementById('cad-clear-selection').onclick=()=>{selectedMesh=null;isolatedMesh=null;hiddenMeshes.clear();document.getElementById('cad-selection').textContent='已取消选择并显示全部零件';applyAppearance()};
 document.getElementById('cad-explode').addEventListener('input',e=>setExplode(+e.target.value));
 document.getElementById('cad-spin').onclick=e=>{auto=!auto;e.target.textContent='自动旋转：'+(auto?'开':'关');e.target.classList.toggle('active',!auto)};
-document.getElementById('cad-reset').onclick=()=>{radius=11.7;az=.68;pol=1.04;document.getElementById('cad-explode').value=18;setExplode(18);place()};
+document.getElementById('cad-reset').onclick=()=>{radius=11.7;az=.68;pol=1.04;camera.lookAt(0,0,0);isolatedMesh=null;hiddenMeshes.clear();selectedMesh=null;eachMesh(o=>o.visible=true);document.getElementById('cad-explode').value=18;setExplode(18);place();applyAppearance();document.getElementById('cad-selection').textContent='选中零件：未选择'};
 document.getElementById('cad-assemble').onclick=()=>{document.getElementById('cad-explode').value=0;setExplode(0)};
 document.getElementById('cad-explode-btn').onclick=()=>{document.getElementById('cad-explode').value=70;setExplode(70)};
 document.querySelectorAll('[data-view]').forEach(b=>b.onclick=()=>{document.querySelectorAll('[data-view]').forEach(x=>x.classList.remove('active'));b.classList.add('active');radius=11.7;const v=b.dataset.view;if(v==='front'){az=0;pol=Math.PI/2}else if(v==='side'){az=Math.PI/2;pol=Math.PI/2}else if(v==='top'){az=0;pol=.12}else if(v==='bottom'){az=0;pol=Math.PI-.12}else{az=.68;pol=1.04}place()});
