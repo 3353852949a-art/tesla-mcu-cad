@@ -1,152 +1,250 @@
-<!doctype html>
-<html lang="zh-CN">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
-<meta name="theme-color" content="#10171f">
-<title>MCU / CAD · Interactive 3D Assembly</title>
+<!DOCTYPE html>
+<html lang="zh-CN"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Model 3 MCU 三维拆解</title><meta name="color-scheme" content="dark">
 <style>
-:root{color-scheme:dark;--bg:#10171f;--panel:#111a23ed;--line:#34424e;--text:#e5edf5;--muted:#8294a5;--mint:#91d1c5}
-*{box-sizing:border-box}html,body{margin:0;width:100%;min-height:100%;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,"Segoe UI",sans-serif}body{overflow:hidden}
-header{height:58px;display:flex;align-items:center;justify-content:space-between;padding:0 14px;border-bottom:1px solid #34404d;background:#0c1117;position:relative;z-index:2}.brand{letter-spacing:.18em;font-weight:700}.mark{border:1px solid #8ebeb8;border-radius:8px;padding:5px;margin-right:8px;color:#9ad5cc}.subtitle{font-size:11px;color:#8295a8}
-header{display:none!important}main{height:100dvh;min-height:100dvh;width:100vw;position:relative;background:radial-gradient(ellipse at 50% 42%,#1b2b39,#10171f 68%)}#stage{position:absolute;inset:0}canvas{width:100%;height:100%;display:block;touch-action:none}
-.views,.hint,.panel,.panel-reopen{display:none!important}.error{font-size:0;background:transparent;padding:0;pointer-events:none}
-button{background:#17222d;color:#dce8f1;border:1px solid #435260;border-radius:12px;padding:9px 11px;font-size:12px;cursor:pointer;min-height:38px}button:active,button.active{background:#2c4c56;border-color:#91d1c5}
-.hint{position:absolute;top:65px;left:12px;font-size:11px;color:#9cabb9;background:#111a23b8;border:1px solid #2a3b48;padding:7px 10px;border-radius:10px;pointer-events:none}
-.panel{position:absolute;bottom:10px;left:10px;right:10px;padding:9px;border:1px solid #34424e;border-radius:16px;background:#111a23ed;z-index:3;max-width:680px;margin:auto;backdrop-filter:blur(8px);max-height:48dvh;overflow:auto}.panel-toggle{width:100%;min-height:34px;padding:6px 10px;font-weight:600}.panel-hide{min-height:34px;padding:6px 10px;white-space:nowrap}.panel.collapsed{padding:6px;background:#111a23c9}.panel.collapsed .panel-controls{display:none}.panel-head{display:flex;align-items:center;gap:8px}.panel-head .panel-toggle{flex:1}.panel-head .note{margin:0;flex:2}.panel-reopen{display:none;position:absolute;bottom:10px;left:10px;z-index:4;min-height:34px;padding:7px 12px;background:#111a23e8;border-radius:12px;box-shadow:0 2px 12px #0006}.panel-hidden{display:none!important}.panel-reopen.visible{display:block}
-.row{display:flex;align-items:center;gap:10px}.row+.row{margin-top:10px}.label{font-size:12px;min-width:66px}.range{flex:1;min-width:60px;accent-color:#91d1c5}.pct{font-size:12px;min-width:32px;text-align:right;color:#b7dcd5}.actions{display:flex;gap:8px;flex-wrap:wrap}.actions button{flex:1;min-width:95px}.note{font-size:11px;color:#8294a5;margin-top:8px}.error{position:absolute;top:45%;left:16px;right:16px;text-align:center;color:#c5d4df;background:#111a23d9;padding:12px;border-radius:10px}
-@media(min-width:800px){.panel{left:50%;right:auto;transform:translateX(-50%);width:min(680px,calc(100% - 24px))}.views{right:max(12px,calc((100% - 1100px)/2))}header{padding:0 max(14px,calc((100% - 1100px)/2))}}
-</style>
-</head>
-<body>
-<header><div class="brand"><span class="mark">M3</span> MCU / CAD</div><div class="subtitle">INTERACTIVE 3D ASSEMBLY</div></header>
-<main><div id="stage"><canvas id="cad-canvas"></canvas></div>
-<div class="views"><button data-view="iso" class="active">3D</button><button data-view="front">正视</button><button data-view="side">侧视</button><button data-view="top">俯视</button><button data-view="bottom">底视</button></div>
-<div class="hint">拖动旋转 · 双指缩放 · 轻触选择零件</div>
-<div id="cad-error" class="error">正在加载三维模型…</div>
-<div class="panel collapsed" id="cad-panel">
- <div class="panel-head"><button id="cad-panel-toggle" class="panel-toggle" aria-expanded="false">展开控制面板 ＋</button><button id="cad-panel-hide" class="panel-hide" aria-label="隐藏底部控制面板">隐藏 ×</button></div>
- <div class="panel-controls">
- <div class="row"><label class="label" for="cad-explode">爆炸分层</label><input id="cad-explode" class="range" type="range" min="0" max="100" value="18"><span id="cad-pct" class="pct">18%</span></div>
- <div class="row actions"><button id="cad-spin">自动旋转：开</button><button id="cad-reset">重置视角</button><button id="cad-assemble">完整装配</button><button id="cad-explode-btn">爆炸分解</button></div>
- <div class="row actions"><button id="cad-wire">线框：关</button><button id="cad-alpha">透明外壳：关</button><button id="cad-hide">隐藏选中零件</button><button id="cad-show">显示全部零件</button></div>
- <div class="row actions"><button id="cad-focus">聚焦选中零件</button><button id="cad-isolate">仅显示选中零件</button><button id="cad-clear-selection">取消选择</button></div>
- <div class="row"><label class="label" for="cad-opacity">整体透明度</label><input id="cad-opacity" class="range" type="range" min="25" max="100" value="100"><span id="cad-opacity-pct" class="pct">100%</span></div>
- <div id="cad-selection" class="note" aria-live="polite">选中零件：未选择（轻触或双击模型上的零件进行选择）</div>
- <div class="note">可拖动旋转、缩放；滑动分层条查看内部组件。此为视觉演示模型，并非原厂尺寸工程图。</div>
- </div>
-</div><button id="cad-panel-reopen" class="panel-reopen" aria-label="重新显示控制面板">显示控制面板 ＋</button></main>
-<script src="https://cdn.jsdelivr.net/npm/three@0.150.1/build/three.min.js"></script>
+:root{--bg:#0e1116;--pn:#171b22;--ln:#2a313c;--tx:#e8ecf2;--mt:#8b95a5;--ac:#3b8cff;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);color-scheme:dark}
+html,body{height:100%;margin:0;background:var(--bg);color:var(--tx);font:14px/1.4 system-ui,-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;overflow:hidden;-webkit-tap-highlight-color:transparent}
+#app{position:fixed;inset:0;padding:inherit}
+#cv{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none}
+#top{position:absolute;left:0;right:0;top:env(safe-area-inset-top,0px);padding:8px 12px;background:linear-gradient(#0e1116ee,#0e111600);pointer-events:none}
+#top b{font-size:15px}#top small{display:block;color:var(--mt);font-size:11px}
+#stat{color:#f0b040}
+#list{position:absolute;left:8px;top:calc(env(safe-area-inset-top,0px) + 52px);width:min(260px,70vw);max-height:42vh;overflow:auto;background:var(--pn);border:1px solid var(--ln);border-radius:10px;display:none}
+#list.on{display:block}
+.row{display:flex;align-items:center;border-bottom:1px solid var(--ln)}
+.row span{flex:1;padding:10px 12px;min-height:20px}.row.sel{background:#1c2f4d}.row.off span{opacity:.4}
+.row button{width:44px;height:40px;background:none;border:0;color:var(--tx);font-size:16px}
+#info{position:absolute;left:8px;right:8px;bottom:calc(env(safe-area-inset-bottom,0px) + 148px);background:#171b22e6;border:1px solid var(--ln);border-radius:10px;padding:8px 12px;display:none;font-size:12px}
+#info b{font-size:13px}#info p{margin:2px 0 0;color:var(--mt)}
+#bar{position:absolute;left:0;right:0;bottom:env(safe-area-inset-bottom,0px);background:var(--pn);border-top:1px solid var(--ln);padding:8px 8px 8px}
+#sl{display:flex;align-items:center;gap:10px;padding:2px 6px 8px}
+#sl input{flex:1;height:32px;accent-color:var(--ac)}#sl span{width:44px;text-align:right;font-variant-numeric:tabular-nums}
+#g{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}
+#g button{height:44px;border-radius:8px;border:1px solid var(--ln);background:#1f252e;color:var(--tx);font-size:12px;padding:0 2px;touch-action:manipulation}
+#g button:active{transform:scale(.95);background:#2a3340}#g button.on{background:var(--ac);border-color:var(--ac);color:#fff}
+#ld{position:absolute;inset:0;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;z-index:9;text-align:center;padding:24px}
+#ld.err{color:#ff7b72}
+</style></head><body><div id="app">
+<canvas id="cv"></canvas>
+<div id="top"><b>Model 3 · MCU 电驱逆变器</b><small><span id="stat">加载中</span> · 依据维修资料的参考性重建 · 非原厂 CAD</small></div>
+<div id="list"></div><div id="info"><b id="in"></b><p id="id"></p></div>
+<div id="bar"><div id="sl"><span>拆解</span><input id="rg" type="range" min="0" max="100" value="0" aria-label="拆解进度"><span id="pc">0%</span></div>
+<div id="g">
+<button id="bFree">自由查看</button><button id="bEx">拆解/装配</button><button id="bList">零件列表</button><button id="bIso">选中隔离</button><button id="bAll">显示全部</button>
+<button id="vF">正视角</button><button id="vS">侧视角</button><button id="vT">俯视角</button><button id="vI">等轴测</button><button id="vR">重置视图</button>
+</div></div>
+<div id="ld"><div id="lt">正在构建三维模型…</div></div></div>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js" onerror="window.__e='Three.js 加载失败(网络或 CDN 不可用)'"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js" onerror="window.__e2='OrbitControls 加载失败'"></script>
 <script>
-(function(){
-const canvas=document.getElementById('cad-canvas'),err=document.getElementById('cad-error'),stage=document.getElementById('stage');
-if(!window.THREE){err.textContent='无法加载 Three.js。请检查网络后刷新页面。';return;}
-const scene=new THREE.Scene();scene.background=new THREE.Color(0x10171f);scene.fog=new THREE.Fog(0x10171f,18,36);
-const camera=new THREE.PerspectiveCamera(38,1,.1,100);
-let renderer;const isMobile=/Android|iPhone|iPad|iPod/i.test(navigator.userAgent);try{renderer=new THREE.WebGLRenderer({canvas,antialias:!isMobile,alpha:false,powerPreference:'high-performance'})}catch(e){err.textContent='浏览器无法启动 WebGL，或显卡加速不可用。请更新浏览器并启用硬件加速后刷新。';console.error(e);return}renderer.setPixelRatio(Math.min(devicePixelRatio||1,isMobile?1.5:2));renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.18;
-scene.add(new THREE.HemisphereLight(0xdceaff,0x26313b,2.1));
-const key=new THREE.DirectionalLight(0xffffff,3.2);key.position.set(5,9,7);scene.add(key);
-const rim=new THREE.DirectionalLight(0x53b9d4,2.1);rim.position.set(-6,3,-6);scene.add(rim);
-const mat=(c,metal=.25,rough=.35)=>new THREE.MeshStandardMaterial({color:c,metalness:metal,roughness:rough});
-const aluminum=mat(0x9aa9b7,.82,.24),bright=mat(0xdce4eb,.8,.2),graphite=mat(0x202a34,.55,.3),black=mat(0x10161d,.3,.32),green=mat(0x165346,.25,.4),green2=mat(0x267c68,.25,.35),gold=mat(0xc4a15d,.78,.22),copper=mat(0xb27c43,.75,.26),blue=mat(0x326b89,.45,.3);
-const assembly=new THREE.Group();scene.add(assembly);const layers=[];
-function layer(y){const g=new THREE.Group();g.position.y=y;assembly.add(g);layers.push({g,y});return g}
-function box(g,w,h,d,m,x,y,z){const o=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),m);o.name='结构件 '+(g.children.length+1);o.position.set(x,y,z);g.add(o);return o}
-function cylinder(g,r,h,m,x,y,z){const o=new THREE.Mesh(new THREE.CylinderGeometry(r,r,h,24),m);o.name='圆柱/紧固件 '+(g.children.length+1);o.position.set(x,y,z);g.add(o);return o}
-const base=layer(-1.12);
-box(base,5.5,.4,3.55,blue,0,0,0);box(base,5.24,.16,3.3,graphite,0,.24,0);box(base,4.98,.1,3.08,aluminum,0,.34,0);
-for(let i=0;i<22;i++)box(base,.055,.17,.24,gold,-1.65+i*.157,.02,1.82);
-box(base,3.85,.17,.27,black,0,.02,1.8);
-for(const x of [-2.35,2.35])for(const z of [-1.35,1.35])cylinder(base,.12,.12,bright,x,.45,z);
-const shield=layer(-.57);
-box(shield,5.15,.16,3.23,graphite,0,0,0);box(shield,4.98,.07,3.06,bright,0,.11,0);
-for(const x of [-2.3,2.3])for(const z of [-1.3,1.3])cylinder(shield,.13,.08,graphite,x,.17,z);
-const pcbLayer=layer(.03);
-box(pcbLayer,4.85,.15,2.94,green,0,0,0);box(pcbLayer,4.55,.025,2.7,green2,0,.087,0);
-for(let i=0;i<14;i++)box(pcbLayer,.018,.014,1.9,copper,-1.9+i*.29,.108,0);
-for(let i=0;i<9;i++)box(pcbLayer,2.4,.014,.018,copper,0,.11,-1.1+i*.27);
-for(let i=0;i<6;i++)for(let j=0;j<4;j++)cylinder(pcbLayer,.035,.025,gold,-2.05+i*.78,.12,-1.12+j*.72);
-const chips=[[-1.68,-.72,.65,.53],[-1.68,.62,.65,.53],[1.38,-.72,.72,.58],[1.38,.02,.72,.58],[1.38,.75,.72,.48],[-.1,1.02,.55,.34]];
-for(const [x,z,w,d] of chips){box(pcbLayer,w,.19,d,black,x,.22,z);box(pcbLayer,w*.82,.055,d*.78,graphite,x,.34,z);for(let i=0;i<5;i++){box(pcbLayer,.055,.035,.05,bright,x-w*.31+i*w*.155,.39,z-d*.23);box(pcbLayer,.055,.035,.05,bright,x-w*.31+i*w*.155,.39,z+d*.23)}for(let i=0;i<4;i++){box(pcbLayer,.045,.035,.05,gold,x-w*.42,.28,z-d*.25+i*d*.16);box(pcbLayer,.045,.035,.05,gold,x+w*.42,.28,z-d*.25+i*d*.16)}}
-box(pcbLayer,1.2,.2,1.05,black,.05,.27,-.02);box(pcbLayer,1.08,.055,.93,graphite,.05,.39,-.02);
-for(let i=0;i<18;i++){const p=-.44+i*.057;box(pcbLayer,.026,.07,.08,gold,p,.36,-.57);box(pcbLayer,.026,.07,.08,gold,p,.36,.53)}
-for(let i=0;i<15;i++)box(pcbLayer,.12,.11,.065,bright,2.3,.18,-1.25+i*.175);
-
-// Additional board-level detail: illustrative passives, mounting posts and edge connectors.
-function namedBox(g,w,h,d,m,x,y,z,name){const o=box(g,w,h,d,m,x,y,z);o.name=name;return o}
-function namedCylinder(g,r,h,m,x,y,z,name){const o=cylinder(g,r,h,m,x,y,z);o.name=name;return o}
-for(const [x,z] of [[-2.18,-1.08],[-2.18,1.08],[2.18,-1.08],[2.18,1.08]]){
-  namedCylinder(pcbLayer,.095,.16,gold,x,.19,z,'PCB 安装柱');
-  namedCylinder(pcbLayer,.052,.17,bright,x,.21,z,'安装柱螺钉');
+const $=id=>document.getElementById(id);
+function fail(m){const l=$('ld');l.className='err';l.style.display='flex';$('lt').textContent='错误:'+m;$('stat').textContent='加载失败'}
+window.addEventListener('error',e=>{if($('ld'))fail(e.message)});
+try{
+if(!window.THREE)throw new Error(window.__e||'Three.js 未加载');
+if(!THREE.OrbitControls)throw new Error(window.__e2||'OrbitControls 未加载');
+const cv=$('cv'),renderer=new THREE.WebGLRenderer({canvas:cv,antialias:true});
+renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,2));renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;renderer.outputEncoding=THREE.sRGBEncoding;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.1;
+const scene=new THREE.Scene();scene.background=new THREE.Color(0x0e1116);scene.fog=new THREE.Fog(0x0e1116,90,200);
+const cam=new THREE.PerspectiveCamera(38,1,1,400);
+// 环境反射(程序生成,无外部资源)
+{const es=new THREE.Scene(),sg=new THREE.SphereGeometry(80,24,16),c=[];const p=sg.attributes.position;
+for(let i=0;i<p.count;i++){const t=(p.getY(i)/80+1)/2;c.push(.12+.5*t,.14+.55*t,.18+.65*t)}
+sg.setAttribute('color',new THREE.Float32BufferAttribute(c,3));es.add(new THREE.Mesh(sg,new THREE.MeshBasicMaterial({vertexColors:true,side:THREE.BackSide})));
+[[40,40,30,4],[-40,30,-20,2.5],[0,60,0,3],[-45,10,35,1.5],[45,5,-40,1.2]].forEach(q=>{const b=new THREE.Mesh(new THREE.BoxGeometry(30,2,30),new THREE.MeshBasicMaterial({color:new THREE.Color().setScalar(q[3])}));b.position.set(q[0],q[1],q[2]);b.lookAt(0,0,0);es.add(b)});
+const pm=new THREE.PMREMGenerator(renderer);scene.environment=pm.fromScene(es).texture;pm.dispose()}
+scene.add(new THREE.HemisphereLight(0xbfd4ff,0x202020,.5));
+const key=new THREE.DirectionalLight(0xffffff,1.1);key.position.set(25,50,30);key.castShadow=true;key.shadow.mapSize.set(1024,1024);key.shadow.bias=-.0004;key.shadow.radius=3;
+Object.assign(key.shadow.camera,{left:-45,right:45,top:45,bottom:-45,near:5,far:140});scene.add(key);
+const rim=new THREE.DirectionalLight(0x6fa8ff,.7);rim.position.set(-30,20,-40);scene.add(rim);const fill=new THREE.DirectionalLight(0xffe8d0,.35);fill.position.set(-35,15,35);scene.add(fill);
+const gnd=new THREE.Mesh(new THREE.CircleGeometry(90,48),new THREE.MeshStandardMaterial({color:0x151a21,roughness:.9}));gnd.rotation.x=-Math.PI/2;gnd.position.y=-1.7;gnd.receiveShadow=true;scene.add(gnd);
+const grid=new THREE.GridHelper(120,30,0x2a313c,0x1d232b);grid.position.y=-1.69;scene.add(grid);
+const root=new THREE.Group();scene.add(root);
+// 材质(复用)
+const M=(c,m,r,o={})=>new THREE.MeshStandardMaterial(Object.assign({color:c,metalness:m,roughness:r},o));
+const mAl=M(0x9ea5ad,.85,.42),mAlD=M(0x6c737b,.8,.5),mCu=M(0xb87333,1,.28),mPcb=new THREE.MeshPhysicalMaterial({color:0xffffff,roughness:.45,metalness:.1,clearcoat:.6,clearcoatRoughness:.35}),mChip=M(0x1b1c1f,.2,.5),mSil=M(0xc9ccd0,.9,.3),
+mOr=new THREE.MeshPhysicalMaterial({color:0xd9541e,roughness:.4,metalness:0,clearcoat:.5,clearcoatRoughness:.3}),mBk=M(0x1a1a1d,0,.65),mBolt=M(0x80868c,.9,.35),mMod=M(0x2a2d32,.3,.5),mCap=M(0x27488a,.2,.45),mIns=M(0xe0b050,0,.6,{transparent:true,opacity:.65}),mRub=M(0x0d0d0f,0,.9),mPink=M(0xc98e91,.05,.48),mRes=M(0x33383d,.12,.62),mCer=M(0xd3d0c7,.05,.55),mSeal=M(0x17191d,.02,.82),mNickel=M(0xc8cdd2,.88,.22);
+// 程序化纹理(铸铝颗粒、PCB 走线、地面渐变、接触阴影)
+function ctex(w,h,fn,rep,srgb){const c=document.createElement('canvas');c.width=w;c.height=h;fn(c.getContext('2d'),w,h);const t=new THREE.CanvasTexture(c);t.wrapS=t.wrapT=THREE.RepeatWrapping;t.anisotropy=4;if(rep)t.repeat.set(rep,rep);if(srgb)t.encoding=THREE.sRGBEncoding;return t}
+const nz=ctex(256,256,(g,w,h)=>{const d=g.createImageData(w,h);for(let i=0;i<d.data.length;i+=4){const v=120+Math.random()*110;d.data[i]=d.data[i+1]=d.data[i+2]=v;d.data[i+3]=255}g.putImageData(d,0,0)},.35);
+[mAl,mAlD,mMod,mCap,mBolt].forEach(m=>{m.bumpMap=nz;m.bumpScale=.5;m.roughnessMap=nz;m.roughness=Math.min(1,m.roughness*1.6)});
+mCu.bumpMap=nz;mCu.bumpScale=.15;
+mPcb.map=ctex(512,512,(g,w,h)=>{g.fillStyle='#0b5a3a';g.fillRect(0,0,w,h);g.strokeStyle='#17835a';g.lineWidth=3;for(let i=0;i<70;i++){let x=Math.random()*w,y=Math.random()*h;g.beginPath();g.moveTo(x,y);for(let k=0;k<3;k++){if(k%2)y+=(Math.random()-.5)*160;else x+=(Math.random()-.5)*160;g.lineTo(x,y)}g.stroke()}g.fillStyle='#d4af37';for(let i=0;i<60;i++){g.beginPath();g.arc(Math.random()*w,Math.random()*h,4,0,7);g.fill()}g.fillStyle='#e8e8e8';for(let i=0;i<14;i++)g.fillRect(Math.random()*w,Math.random()*h,18,3)},.1,true);
+gnd.material.map=ctex(256,256,(g,w,h)=>{const r=g.createRadialGradient(w/2,h/2,0,w/2,h/2,w/2);r.addColorStop(0,'#2a3340');r.addColorStop(1,'#0e1116');g.fillStyle=r;g.fillRect(0,0,w,h)},0,true);gnd.material.map.wrapS=gnd.material.map.wrapT=THREE.ClampToEdgeWrapping;gnd.material.color.set(0xffffff);gnd.material.needsUpdate=true;
+{const sh=new THREE.Mesh(new THREE.PlaneGeometry(52,40),new THREE.MeshBasicMaterial({transparent:true,depthWrite:false,map:ctex(128,128,(g,w,h)=>{const r=g.createRadialGradient(w/2,h/2,0,w/2,h/2,w/2);r.addColorStop(0,'rgba(0,0,0,.65)');r.addColorStop(1,'rgba(0,0,0,0)');g.fillStyle=r;g.fillRect(0,0,w,h)})}));sh.rotation.x=-Math.PI/2;sh.position.y=-1.67;scene.add(sh)}
+const edgeMat=new THREE.LineBasicMaterial({color:0x000000,transparent:true,opacity:.28});
+// 几何助手(圆角挤出;单位≈10mm)
+function rr(w,d,r){const s=new THREE.Shape(),x=-w/2,y=-d/2;s.moveTo(x+r,y);s.lineTo(x+w-r,y);s.quadraticCurveTo(x+w,y,x+w,y+r);s.lineTo(x+w,y+d-r);s.quadraticCurveTo(x+w,y+d,x+w-r,y+d);s.lineTo(x+r,y+d);s.quadraticCurveTo(x,y+d,x,y+d-r);s.lineTo(x,y+r);s.quadraticCurveTo(x,y,x+r,y);return s}
+function ext(s,h,b=.08){const g=new THREE.ExtrudeGeometry(s,{depth:h,bevelEnabled:b>0,bevelSize:b,bevelThickness:b,bevelSegments:2,curveSegments:6});g.rotateX(-Math.PI/2);return g}
+function ring(w,d,r,t,h,b){const s=rr(w,d,r);s.holes.push(rr(w-2*t,d-2*t,Math.max(r-t,.3)));return ext(s,h,b)}
+const parts=[];
+function part(id,name,desc,dir,stages){const g=new THREE.Group();g.name=id;root.add(g);const p={id,name,desc,g,dir:new THREE.Vector3(...dir),stages,sel:false};parts.push(p);return p}
+function add(p,geo,mat,x=0,y=0,z=0){const m=new THREE.Mesh(geo,mat);m.position.set(x,y,z);m.castShadow=m.receiveShadow=true;m.userData.part=p;p.g.add(m);return m}
+const B=(w,h,d)=>new THREE.BoxGeometry(w,h,d),Cy=(r,h,s=20)=>new THREE.CylinderGeometry(r,r,h,s);
+const UP=[0,1,0];
+// 1 下壳体
+const hs=part('hous','下壳体(铸铝)','铸铝壳体:底板、侧壁、安装耳、底部散热筋与冷却液接口。尺寸为近似建模,非原厂数据。',UP,[]);
+add(hs,ext(rr(30,22,2.2),1.2,.15),mAl,0,0,0);add(hs,ring(30,22,2.2,1.2,5,.15),mAl,0,1.2,0);
+for(const sx of[-1,1])for(const sz of[-1,1]){const s=rr(5,4,1);const h=new THREE.Path();h.absarc(0,0,.8,0,7,true);s.holes.push(h);add(hs,ext(s,1.2,.05),mAlD,sx*16.5,0,sz*6)}
+for(let i=0;i<13;i++)add(hs,B(.42,1.25,17.2),mAlD,-12+i*2,-.62,0);
+// Cast-in bosses and machined pads around the internal perimeter.
+for(const x of[-12.4,12.4])for(const z of[-8.2,8.2]){add(hs,Cy(.72,1.0,24),mAlD,x,5.95,z);add(hs,Cy(.34,.12,24),mAl,x,6.52,z)}
+for(const x of[-14.7,14.7])for(const z of[-7.2,7.2]){add(hs,B(1.5,1.2,3.4),mAlD,x,.55,z);add(hs,Cy(.48,1.25,20),mAl,x,.7,z)}
+// Outer wall ribs and machined flange lands.
+for(const x of[-14.9,14.9])for(let z=-5.4;z<=5.5;z+=3.6)add(hs,B(.65,3.8,1.0),mAlD,x,3.1,z);
+for(const z of[-10.3,10.3])add(hs,B(25,.42,.48),mAlD,0,5.85,z);
+// 2 上盖
+const cv_=part('cover','上盖','铸铝上盖:加强筋与周边密封圈,12 颗紧固螺栓在“紧固件”中单独管理。',UP,[[0,.4,18]]);
+add(cv_,ext(rr(30,22,2.2),.9,.18),mAl,0,6.4,0);
+for(const z of[-6,0,6])add(cv_,B(24,.5,.7),mAl,0,7.55,z);add(cv_,B(.7,.5,16),mAl,0,7.55,0);
+add(cv_,ring(29.6,21.6,2,.9,.2,0),mRub,0,6.2,0);
+// 3 紧固件
+const fs=part('bolt','上盖紧固件（布局示意）','六角头螺栓与垫圈的视觉示意；数量、间距和规格未按具体 3DU/4DU 版本定型。',UP,[[0,.4,26],[.76,1,6]]);
+const bp=[];for(const x of[-12,-6,0,6,12])for(const z of[-10.4,10.4])bp.push([x,z]);bp.push([-14.4,0],[14.4,0]);
+bp.forEach(([x,z])=>{add(fs,Cy(.55,.35,6),mBolt,x,7.5,z);add(fs,Cy(.85,.1,20),mBolt,x,7.3,z);add(fs,Cy(.3,1.6,12),mBolt,x,6.5,z)});
+// 4 冷板
+const cp=part('cold','散热底板/冷板','铝冷板承载功率模块并与壳体冷却通道配合;内部流道未建模(无可靠资料)。',UP,[[.76,1,1.5]]);
+add(cp,ext(rr(18,16,1),.6,.05),mAl,3.5,1.2,0);
+// 5 功率模块
+const pm=part('mod','功率模块 ×3(示意)','三相桥臂功率模块示意。器件类型(SiC/IGBT)依所选版本资料确定,当前待核实,不作断言。',UP,[[.41,.75,2.5],[.76,1,2]]);
+[-2,3.5,9].forEach(x=>{add(pm,ext(rr(5,14,.5),1.3,.05),mMod,x,1.8,0);
+[-5,5].forEach(z=>add(pm,B(2.6,.2,1.6),mCu,x,3.2,z));
+for(let k=0;k<6;k++)add(pm,Cy(.12,.7,8),mSil,x-1.5+k*.6,3.4,-1.2)});
+// 6 DC-link / input-filter region. Packaged rectangular representation only;
+// exact 2024 vehicle variant and internal capacitor package are not yet verified.
+const dc=part('cap','DC-Link 电容/滤波组件（封装待核）','低矮矩形封装与端子区为工程示意。2024+ Model 3 的具体逆变器版本、元件封装和内部布局尚未锁定，不代表原厂尺寸或电容数量。',[-1,.18,0],[[.41,.75,5],[.76,1,4]]);
+add(dc,ext(rr(8.4,15.2,.85),.55,.06),mAlD,-9.6,1.35,0);
+add(dc,ext(rr(7.95,14.7,.72),1.75,.08),mMod,-9.6,1.9,0);
+add(dc,B(7.65,.12,14.25),mBk,-9.6,3.72,0);
+for(let i=0;i<7;i++){const z=-5.2+i*1.72;add(dc,B(7.2,.035,.055),mCu,-9.6,3.8,z)}
+for(const x of[-12.1,-7.1]){add(dc,B(.75,.22,1.35),mCu,x,4.0,-7.7);add(dc,B(.75,.22,1.35),mCu,x,4.0,7.7);add(dc,Cy(.28,.16,20),mNickel,x,4.14,-7.7);add(dc,Cy(.28,.16,20),mNickel,x,4.14,7.7)}
+for(let i=0;i<6;i++)add(dc,B(.08,.5,13.2),mAlD,-13.25+i*.12,2.65,0);
+// 7 绝缘隔离
+const ins=part('ins','绝缘隔离件','母排与功率模块之间的绝缘片示意(材料、厚度待核实)。',UP,[[.41,.75,4],[.76,1,3]]);
+add(ins,B(21,.08,4.4),mIns,1.5,3.3,-5);
+// 8 Laminated DC busbar pair. Routing is kept schematic until exact 3DU/4DU
+// reference geometry is selected; the split planes and stepped terminals are modeled.
+const bb=part('bus','叠层铜母排/连接片','正负叠层母排、绝缘隔片和连接耳的结构示意。走向、厚度和端子间距尚未按具体 3DU/4DU 版本定型。',UP,[[.41,.75,6],[.76,1,4]]);
+add(bb,B(18.5,.22,1.55),mCu,1.0,3.45,-8.75);add(bb,B(18.5,.22,1.55),mCu,1.0,3.83,-8.75);
+add(bb,B(17.9,.045,1.48),mIns,1.0,3.61,-8.75);
+for(let i=0;i<6;i++){const x=-7.4+i*3.35;add(bb,B(1.0,.22,2.8),mCu,x,3.5,-7.35);add(bb,B(1.0,.22,2.8),mCu,x,3.88,-7.35);add(bb,Cy(.24,.12,20),mNickel,x,4.02,-7.35)}
+add(bb,B(1.2,.22,2.2),mCu,-7.2,3.45,-7.1);add(bb,B(1.2,.22,2.2),mCu,-7.2,3.83,-7.1);
+// 9 PCB
+const pb=part('pcb','驱动控制 PCB','栅极驱动与辅助电源电路示意板,元件为示意布置,非真实电路。',UP,[[.41,.75,10],[.76,1,6]]);
+add(pb,ext(rr(24,19,.8),.25,.03),mPcb,1,5.2,0);
+for(const x of[-11.5,13.5])for(const z of[-8.6,8.6])add(pb,Cy(.35,4,12),mSil,x-0.5+(x<0?0:-1),3.2,z);
+// Deterministic component placement: organized ICs, passives, solder pads and
+// a clear service-visible thermal-pad zone (rather than random floating blocks).
+for(const [x,z,w,d] of [[-8,-5,1.8,1.35],[-1.2,-5.2,1.65,1.25],[5.8,-5.1,2.0,1.55],[9.5,1.8,1.7,1.35],[-1.3,5.3,1.8,1.3],[6.3,5.3,1.55,1.2]]){
+ add(pb,B(w,.22,d),mChip,x,5.58,z);add(pb,B(w*.82,.08,d*.78),mBk,x,5.73,z);
+ for(let k=0;k<5;k++){const xx=x-w*.34+k*w*.17;add(pb,B(.075,.07,.13),mSil,xx,5.64,z-d*.43);add(pb,B(.075,.07,.13),mSil,xx,5.64,z+d*.43)}
 }
-for(let row=0;row<3;row++)for(let col=0;col<8;col++){
-  const x=-1.7+col*.34,z=-.15+row*.25;
-  namedBox(pcbLayer,.17,.075,.105,black,x,.19,z,'贴片元件');
-  namedBox(pcbLayer,.035,.078,.11,gold,x-.09,.19,z,'贴片焊端');
-  namedBox(pcbLayer,.035,.078,.11,gold,x+.09,.19,z,'贴片焊端');
+// Small passives in regular banks along clear PCB zones.
+for(let row=0;row<3;row++)for(let col=0;col<16;col++){
+ const x=-10.2+col*.62,z=(row-1)*.42+3.15;
+ add(pb,B(.28,.13,.18),mChip,x,5.57,z);add(pb,B(.055,.08,.2),mSil,x-.17,5.58,z);add(pb,B(.055,.08,.2),mSil,x+.17,5.58,z);
 }
-for(let i=0;i<3;i++){
-  const x=-1.75+i*1.75;
-  namedBox(pcbLayer,.88,.34,.42,blue,x,.22,1.48,'板边连接器外壳');
-  namedBox(pcbLayer,.68,.20,.035,black,x,.24,1.704,'连接器插口');
-  for(let p=0;p<6;p++)namedBox(pcbLayer,.045,.045,.035,gold,x-.225+p*.09,.23,1.727,'连接器触点');
-  namedBox(pcbLayer,.88,.34,.42,blue,x,.22,-1.48,'板边连接器外壳');
-  namedBox(pcbLayer,.68,.20,.035,black,x,.24,-1.704,'连接器插口');
-  for(let p=0;p<6;p++)namedBox(pcbLayer,.045,.045,.035,gold,x-.225+p*.09,.23,-1.727,'连接器触点');
+for(let row=0;row<2;row++)for(let col=0;col<14;col++){
+ const x=-9.6+col*.69,z=-3.2-row*.42;
+ add(pb,B(.25,.12,.16),mChip,x,5.56,z);add(pb,B(.05,.07,.18),mSil,x-.15,5.57,z);add(pb,B(.05,.07,.18),mSil,x+.15,5.57,z);
 }
-for(const x of [-2.32,2.32]){
-  namedBox(pcbLayer,.28,.30,.78,graphite,x,.22,0,'侧边接口模块');
-  namedBox(pcbLayer,.06,.18,.52,bright,x+(x>0?.16:-.16),.24,0,'接口金属边框');
+for(let i=0;i<12;i++){const x=-9.2+i*1.55;add(pb,Cy(.16,.12,14),mSil,x,5.58,-7.9);add(pb,Cy(.16,.12,14),mSil,x,5.58,7.9)}
+add(pb,B(1.35,.24,1.15),mChip,10.1,5.62,-1.5);add(pb,B(1.12,.08,.92),mBk,10.1,5.77,-1.5);
+// 10-12 接口
+const hv=part('hv','高压连接器','橙色高压端子座(外形示意),含密封圈与锁止卡扣。',[0,0,-1],[[.76,1,5]]);
+add(hv,B(6,4,3),mOr,-9.5,3.6,-12.4);add(hv,B(7,5,.3),mRub,-9.5,3.6,-10.9);add(hv,B(2.5,.6,1),mBk,-9.5,5.8,-12.4);
+const lv=part('lv','低压信号连接器','黑色多针低压接口,含防水密封(针数为示意)。',[0,0,-1],[[.76,1,5]]);
+add(lv,B(8,3.5,2.4),mBk,8,3.6,-12.2);add(lv,B(9,4.5,.3),mRub,8,3.6,-10.9);
+for(let i=0;i<6;i++)for(let j=0;j<2;j++)add(lv,B(.3,.3,.5),mSil,5.5+i*.5*1.0*2.0/2,3.1+j*.8,-13.6);
+// 12 Three inverter-to-motor phase lugs. Tesla service procedures identify
+// three phase-terminal fasteners; terminal profile/spacing remains version-specific.
+function phaseLugGeometry(w,h,t,r){const sh=new THREE.Shape();sh.moveTo(-w/2,0);sh.lineTo(w/2,0);sh.lineTo(w/2,h-r);sh.quadraticCurveTo(w/2,h,w/2-r,h);sh.lineTo(-w/2+r,h);sh.quadraticCurveTo(-w/2,h,-w/2,h-r);sh.lineTo(-w/2,0);const hole=new THREE.Path();hole.absarc(0,h-r-.42,r,0,Math.PI*2,true);sh.holes.push(hole);return new THREE.ExtrudeGeometry(sh,{depth:t,bevelEnabled:true,bevelSize:.035,bevelThickness:.035,bevelSegments:2,curveSegments:16})}
+const ph=part('ph','电机三相端子 ×3','维修手册确认逆变器与电机之间有 3 个相位端子连接点及对应紧固件。端子外形、间距和尺寸仍需按具体 3DU/4DU 实物核实。',[0,0,1],[[.76,1,5]]);
+for(const x of[-3.4,1.0,5.4]){
+ add(ph,B(1.9,.34,1.65),mIns,x,2.8,9.7);
+ const lug=add(ph,phaseLugGeometry(1.18,3.25,.32,.31),mCu,x,2.92,10.15);lug.name='三相铜端子';
+ const washer=new THREE.Mesh(new THREE.TorusGeometry(.34,.065,10,24),mNickel);washer.position.set(x,5.75,10.5);washer.userData.part=ph;ph.g.add(washer);
+ const bolt=add(ph,Cy(.22,.55,12).rotateX(Math.PI/2),mBolt,x,5.75,10.54);bolt.name='相位端子螺栓';
+ add(ph,B(.18,.08,.58),mBk,x,5.75,10.85);
 }
-const thermal=layer(.66);box(thermal,4.98,.14,3.12,copper,0,0,0);box(thermal,5.12,.12,3.24,graphite,0,.1,0);
-// Cooling-fin detail pass: illustrative geometry, not an OEM dimensional drawing.
-for(let i=0;i<15;i++){const x=-2.16+i*.308;namedBox(thermal,.105,.31,2.66,aluminum,x,.315,0,'散热鳍片');}
-for(const x of [-2.38,2.38])for(const z of [-1.42,1.42])namedCylinder(thermal,.075,.08,gold,x,.2,z,'散热器固定螺钉');
-for(let i=0;i<8;i++){const x=-1.65+i*.47;namedBox(thermal,.19,.035,.13,black,x,.205,-1.18,'导热垫');namedBox(thermal,.19,.035,.13,black,x,.205,1.18,'导热垫');}
-const lid=layer(1.2);const outerShell=box(lid,5.4,.22,3.52,aluminum,0,0,0);outerShell.userData.shell=true;const shellInset=box(lid,5.05,.07,3.18,bright,0,.15,0);shellInset.userData.shell=true;box(lid,4.82,.06,2.95,graphite,0,.21,0);
-for(let i=0;i<15;i++){const x=-2.2+i*.315;box(lid,.105,.34,2.55,bright,x,.39,0);box(lid,.14,.055,2.58,aluminum,x,.57,0)}
-for(const x of [-2.48,2.48])for(const z of [-1.5,1.5]){cylinder(lid,.105,.07,graphite,x,.18,z);cylinder(lid,.062,.08,bright,x,.23,z)}
-const grid=new THREE.GridHelper(18,36,0x334654,0x243441);grid.position.y=-1.72;scene.add(grid);
-const floor=new THREE.Mesh(new THREE.PlaneGeometry(200,200),mat(0x10171f,.05,.9));floor.rotation.x=-Math.PI/2;floor.position.y=-1.74;scene.add(floor);
-let radius=11.7,az=.68,pol=1.04,auto=true,drag=false,lastX=0,lastY=0,pointers=new Map(),lastPinch=0,pointerStart=null,pointerMoved=false;
-const cameraTarget=new THREE.Vector3(0,0,0);
-let wireframeOn=false,transparentOn=false,opacityValue=1,selectedMesh=null;
-const originalMaterials=new Map(),hiddenMeshes=new Set();
-let isolatedMesh=null;
-function eachMesh(fn){assembly.traverse(o=>{if(o.isMesh)fn(o)})}
-function rememberMaterial(o){if(!originalMaterials.has(o)){const original=o.material,source=Array.isArray(original)?original:[original];originalMaterials.set(o,{material:original,working:source.map(m=>m.clone()),transparent:null})}}
-function applyAppearance(){eachMesh(o=>{rememberMaterial(o);const entry=originalMaterials.get(o),mats=entry.working,showThrough=transparentOn&&!!o.userData.shell,transparent=showThrough||opacityValue<1;if(entry.transparent!==transparent){mats.forEach(m=>m.needsUpdate=true);entry.transparent=transparent}mats.forEach(m=>{m.wireframe=wireframeOn;m.transparent=transparent;m.opacity=opacityValue*(showThrough?0.42:1);m.depthWrite=m.opacity>=0.999;if(m.emissive)m.emissive.setHex(o===selectedMesh?0x24584e:0x000000)});o.material=Array.isArray(entry.material)?mats: mats[0];o.visible=!hiddenMeshes.has(o)&&(!isolatedMesh||o===isolatedMesh||isDescendantOf(o,isolatedMesh))})}
-function isDescendantOf(o,parent){let p=o;while(p){if(p===parent)return true;p=p.parent}return false}
-function selectAt(clientX,clientY){const rect=canvas.getBoundingClientRect(),mouse=new THREE.Vector2(((clientX-rect.left)/rect.width)*2-1,-((clientY-rect.top)/rect.height)*2+1),ray=new THREE.Raycaster();ray.setFromCamera(mouse,camera);const hits=ray.intersectObjects(assembly.children,true).filter(h=>h.object.isMesh&&h.object.visible);if(!hits.length)return;selectedMesh=hits[0].object;document.getElementById('cad-selection').textContent='已选中零件：'+(selectedMesh.name||selectedMesh.geometry.type+' 零件')+'（可隐藏或调整整体显示效果）';eachMesh(o=>{if(o.userData._selectedOriginal){const mats=Array.isArray(o.material)?o.material:[o.material];mats.forEach(m=>{if(m.emissive)m.emissive.setHex(0x000000)});o.userData._selectedOriginal=false}});selectedMesh.userData._selectedOriginal=true;applyAppearance()}
-function place(){pol=Math.max(.12,Math.min(Math.PI-.12,pol));radius=Math.max(5,Math.min(24,radius));camera.position.set(cameraTarget.x+radius*Math.sin(pol)*Math.sin(az),cameraTarget.y+radius*Math.cos(pol),cameraTarget.z+radius*Math.sin(pol)*Math.cos(az));camera.lookAt(cameraTarget)}
-function setExplode(v){document.getElementById('cad-pct').textContent=v+'%';const gap=v*.008;layers.forEach((l,i)=>l.g.position.y=l.y+(i-2.5)*gap)}
-function resize(){const w=stage.clientWidth,h=stage.clientHeight;renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix()}
-resize();place();setExplode(18);err.style.display='none';applyAppearance();
-const panel=document.getElementById('cad-panel'),panelToggle=document.getElementById('cad-panel-toggle'),panelHide=document.getElementById('cad-panel-hide'),panelReopen=document.getElementById('cad-panel-reopen');panelToggle.onclick=()=>{const collapsed=panel.classList.toggle('collapsed');panelToggle.textContent=collapsed?'展开控制面板 ＋':'收起控制面板 −';panelToggle.setAttribute('aria-expanded',String(!collapsed))};panelHide.onclick=()=>{panel.classList.add('panel-hidden');panelReopen.classList.add('visible')};panelReopen.onclick=()=>{panel.classList.remove('panel-hidden');panelReopen.classList.remove('visible')};
-canvas.addEventListener('pointerdown',e=>{pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});canvas.setPointerCapture(e.pointerId);if(pointers.size===1){drag=true;lastX=e.clientX;lastY=e.clientY;pointerStart={x:e.clientX,y:e.clientY};pointerMoved=false}else if(pointers.size===2){pointerStart=null;const a=[...pointers.values()];lastPinch=Math.hypot(a[0].x-a[1].x,a[0].y-a[1].y);drag=false}});
-canvas.addEventListener('pointermove',e=>{if(!pointers.has(e.pointerId))return;const prev=pointers.get(e.pointerId);pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});if(pointerStart&&Math.hypot(e.clientX-pointerStart.x,e.clientY-pointerStart.y)>6)pointerMoved=true;if(pointers.size===1&&drag){az-=(e.clientX-lastX)*.008;pol-=(e.clientY-lastY)*.008;lastX=e.clientX;lastY=e.clientY;place()}else if(pointers.size===2){const a=[...pointers.values()],d=Math.hypot(a[0].x-a[1].x,a[0].y-a[1].y);if(lastPinch)radius*=lastPinch/d;lastPinch=d;place()}});
-function pointerEnd(e){const shouldSelect=e.type==='pointerup'&&pointerStart&&!pointerMoved&&pointers.size===1;if(shouldSelect)selectAt(e.clientX,e.clientY);pointers.delete(e.pointerId);drag=false;lastPinch=0;pointerStart=null;pointerMoved=false}canvas.addEventListener('pointerup',pointerEnd);canvas.addEventListener('pointercancel',pointerEnd);
-canvas.addEventListener('wheel',e=>{radius*=e.deltaY>0?1.08:.92;place()},{passive:true});
-canvas.addEventListener('dblclick',e=>selectAt(e.clientX,e.clientY));
-document.getElementById('cad-wire').onclick=e=>{wireframeOn=!wireframeOn;e.target.textContent='线框：'+(wireframeOn?'开':'关');e.target.classList.toggle('active',wireframeOn);applyAppearance()};
-document.getElementById('cad-alpha').onclick=e=>{transparentOn=!transparentOn;e.target.textContent='透明外壳：'+(transparentOn?'开':'关');e.target.classList.toggle('active',transparentOn);applyAppearance()};
-document.getElementById('cad-opacity').addEventListener('input',e=>{opacityValue=Number(e.target.value)/100;document.getElementById('cad-opacity-pct').textContent=e.target.value+'%';applyAppearance()});
-document.getElementById('cad-hide').onclick=()=>{if(!selectedMesh){document.getElementById('cad-selection').textContent='请先双击模型上的一个零件';return}hiddenMeshes.add(selectedMesh);selectedMesh.visible=false;document.getElementById('cad-selection').textContent='已隐藏：'+selectedMesh.name;selectedMesh=null};
-document.getElementById('cad-show').onclick=()=>{hiddenMeshes.clear();isolatedMesh=null;eachMesh(o=>o.visible=true);document.getElementById('cad-selection').textContent='已显示全部零件';applyAppearance()};
-document.getElementById('cad-focus').onclick=()=>{if(!selectedMesh){document.getElementById('cad-selection').textContent='请先选择一个零件';return}const p=new THREE.Vector3();selectedMesh.getWorldPosition(p);cameraTarget.copy(p);place();document.getElementById('cad-selection').textContent='已聚焦：'+selectedMesh.name+'（拖动可继续旋转）'};
-document.getElementById('cad-isolate').onclick=()=>{if(!selectedMesh){document.getElementById('cad-selection').textContent='请先选择一个零件';return}isolatedMesh=selectedMesh;hiddenMeshes.clear();applyAppearance();document.getElementById('cad-selection').textContent='仅显示：'+selectedMesh.name};
-document.getElementById('cad-clear-selection').onclick=()=>{selectedMesh=null;isolatedMesh=null;hiddenMeshes.clear();document.getElementById('cad-selection').textContent='已取消选择并显示全部零件';applyAppearance()};
-document.getElementById('cad-explode').addEventListener('input',e=>setExplode(+e.target.value));
-document.getElementById('cad-spin').onclick=e=>{auto=!auto;e.target.textContent='自动旋转：'+(auto?'开':'关');e.target.classList.toggle('active',!auto)};
-document.getElementById('cad-reset').onclick=()=>{radius=11.7;az=.68;pol=1.04;cameraTarget.set(0,0,0);camera.lookAt(cameraTarget);isolatedMesh=null;hiddenMeshes.clear();selectedMesh=null;eachMesh(o=>o.visible=true);document.getElementById('cad-explode').value=18;setExplode(18);place();applyAppearance();document.getElementById('cad-selection').textContent='选中零件：未选择'};
-document.getElementById('cad-assemble').onclick=()=>{document.getElementById('cad-explode').value=0;setExplode(0)};
-document.getElementById('cad-explode-btn').onclick=()=>{document.getElementById('cad-explode').value=70;setExplode(70)};
-document.querySelectorAll('[data-view]').forEach(b=>b.onclick=()=>{document.querySelectorAll('[data-view]').forEach(x=>x.classList.remove('active'));b.classList.add('active');radius=11.7;const v=b.dataset.view;if(v==='front'){az=0;pol=Math.PI/2}else if(v==='side'){az=Math.PI/2;pol=Math.PI/2}else if(v==='top'){az=0;pol=.12}else if(v==='bottom'){az=0;pol=Math.PI-.12}else{az=.68;pol=1.04}place()});
-if(window.ResizeObserver)new ResizeObserver(resize).observe(stage);else window.addEventListener('resize',resize);
-function tick(){if(auto&&!drag&&!document.hidden)assembly.rotation.y+=.0022;renderer.render(scene,camera)}
-canvas.addEventListener('webglcontextlost',e=>{e.preventDefault();err.style.display='block';err.textContent='3D 图形上下文已中断，请刷新页面恢复模型。';renderer.setAnimationLoop(null)});
-try{renderer.setAnimationLoop(tick)}catch(e){err.style.display='block';err.textContent='三维模型初始化失败，请刷新页面重试。';console.error(e)}
-})();
-</script>
-</body>
-</html>
+// 13 Perimeter seal at the inverter / gearbox mating plane.
+const gasket=part('gasket','上盖密封圈','上盖与壳体之间的周边密封圈；外形为参考性建模，不代表原厂截面尺寸。',UP,[[0,.22,1.2],[.22,.55,.8]]);
+add(gasket,ring(29.6,21.6,2.0,.42,.22,0),mRub,0,6.13,0);
+// 14 Gearbox-interface gasket: Tesla service procedures require a new inverter gasket.
+const gearGasket=part('gearGasket','驱动单元接口密封垫','Tesla 维修流程要求逆变器安装时使用新的接口垫片；当前轮廓仅为结构示意，非原厂尺寸。',UP,[[0,.25,1.4],[.25,.55,.9]]);
+add(gearGasket,ring(30.4,22.4,2.1,.48,.16,0),mRub,0,-.12,0);
+// 15 Two alignment dowels, explicitly documented in 2024+ 3DU/4DU procedures.
+const pins=part('pins','装配定位销 ×2','Tesla 2024+ 维修流程记载逆变器与驱动单元通过 2 个定位销对位；此处位置为结构示意。',UP,[[.1,.42,1.5],[.42,.7,1.0]]);
+for(const x of[-10.8,10.8]){add(pins,Cy(.22,.72,20),mNickel,x,-.24,0);add(pins,Cy(.31,.10,20),mAlD,x,-.58,0)}
+// 15b Gearbox mating fastener locations; the count/pattern is deliberately not tied to one drive-unit revision.
+const mount=part('mount','变速箱接口紧固点','用于表示逆变器与驱动单元变速箱之间的周边紧固位置。Tesla 维修资料显示不同 3DU/4DU 版本的螺栓数量并不相同，因此此处仅作位置示意。',UP,[[.12,.48,1.2],[.48,.75,.8]]);
+for(const [x,z] of [[-12,-8.7],[-6,-9.8],[0,-9.8],[6,-9.8],[12,-8.7],[-12,8.7],[-6,9.8],[0,9.8],[6,9.8],[12,8.7]]){add(mount,Cy(.34,.18,10),mBolt,x,-.08,z);add(mount,Cy(.22,.22,6),mNickel,x,-.22,z)}
+// 15 Coolant fluid couplings / hose interfaces. Internal passages are not guessed.
+const cool=part('cool','冷却液流体接头 ×2','维修手册记载逆变器冷却液软管、流体耦合器及排液步骤；接口外观为示意，内部流道未按原厂图纸建模。',[1,0,0],[[.5,.82,3],[.82,1,2]]);
+for(const z of[-4.8,4.8]){
+ add(cool,B(1.25,1.3,1.35),mAlD,15.0,2.8,z);
+ add(cool,Cy(.78,1.0,8).rotateZ(Math.PI/2),mAl,15.85,2.8,z);
+ add(cool,Cy(.59,.22,24).rotateZ(Math.PI/2),mRub,16.45,2.8,z);
+ add(cool,Cy(.47,1.25,24).rotateZ(Math.PI/2),mAlD,17.0,2.8,z);
+ add(cool,Cy(.53,.16,24).rotateZ(Math.PI/2),mBolt,17.38,2.8,z);
+ add(cool,Cy(.38,.85,24).rotateZ(Math.PI/2),mRub,17.85,2.8,z);
+}
+// 16 Logic connector with a visible latch and seal; pin count is illustrative.
+const logic=part('logic','低压逻辑连接器','2024+ 维修流程确认逆变器逻辑连接器；壳体、锁扣及针脚数量为视觉示意。',[0,0,-1],[[.55,.84,3],[.84,1,2]]);
+add(logic,B(4.8,1.8,2.1),mBk,8.8,4.1,-11.2);add(logic,B(5.2,.22,.32),mRub,8.8,3.45,-12.25);
+add(logic,B(3.8,.42,.55),mAlD,8.8,5.15,-11.45);add(logic,B(3.2,.24,.22),mNickel,8.8,5.42,-11.72);
+for(let i=0;i<12;i++)add(logic,B(.13,.16,.35),mNickel,7.3+i*.27,4.0,-12.35);
+for(const x of[6.55,11.05])add(logic,Cy(.22,.22,16),mBolt,x,3.35,-11.7);
+// 17 Discharge-resistor array plus removable pink gap pad (service-visible feature).
+const discharge=part('discharge','放电电阻阵列','维修手册明确要求 PCB 上的 gap pad 完整覆盖放电电阻阵列；电阻数量、位置和阻值在此仅作可拆解示意。',UP,[[.42,.72,2.4],[.72,1,2]]);
+for(let i=0;i<10;i++){const x=-7.1+i*.37;add(discharge,B(.27,.18,.55),mCer,x,5.66,-.05);add(discharge,B(.06,.09,.62),mNickel,x-.14,5.68,-.05);add(discharge,B(.06,.09,.62),mNickel,x+.14,5.68,-.05)}
+const gap=part('gap','粉色绝缘导热垫（Gap Pad）','维修手册要求导热垫完整覆盖放电电阻阵列且不得露出电阻；颜色仅用于识别材料区域，尺寸/位置仍为示意。',UP,[[.4,.68,3.1],[.68,1,2]]);
+add(gap,ext(rr(4.45,1.65,.24),.22,.04),mPink,-5.25,5.78,-.05);
+// 18 Ground strap attachment point, shown as a reference feature on the housing.
+const ground=part('ground','壳体接地固定点','维修资料列有驱动单元接地带；该紧固点和接线片为结构参考，位置待具体版本实物验证。',UP,[[.62,.9,2],[.9,1,1.5]]);
+add(ground,Cy(.38,.32,20),mAlD,-14.8,5.6,8.2);add(ground,Cy(.22,.42,16),mNickel,-14.8,5.92,8.2);add(ground,B(2.0,.12,.45),mCu,-13.8,5.93,8.2);add(ground,B(1.0,.12,.18),mCu,-12.9,5.96,8.2);
+// Mark edge helpers as belonging to their parent part for stable picking.
+parts.forEach(p=>p.g.children.slice().forEach(m=>{if(m.isMesh&&m.geometry.type=='ExtrudeGeometry'){const l=new THREE.LineSegments(new THREE.EdgesGeometry(m.geometry,40),edgeMat);l.position.copy(m.position);l.userData.part=p;l.raycast=()=>{};p.g.add(l)}}));
+parts.forEach(p=>p.g.userData.base=p.g.position.clone());
+// 状态
+let ex=0,tgt=0,mode='sel',iso=false,saved=null,sel=null;const rg=$('rg');
+const sm=t=>t*t*(3-2*t);
+function applyEx(){const p100=ex/100;parts.forEach(p=>{let d=0;p.stages.forEach(([a,b,L])=>d+=L*sm(Math.min(1,Math.max(0,(p100-a)/(b-a)))));p.g.position.copy(p.g.userData.base).addScaledVector(p.dir,d)});$('pc').textContent=Math.round(ex)+'%'}
+// 选中/高亮
+const hl=new Map(),hm=m=>{let h=hl.get(m);if(!h){h=m.clone();h.emissive=new THREE.Color(0x2a7fff);h.emissiveIntensity=.6;hl.set(m,h)}return h};
+function setHL(p,on){p.g.traverse(o=>{if(!o.isMesh)return;if(on){o.userData.o=o.userData.o||o.material;o.material=hm(o.userData.o)}else if(o.userData.o){o.material=o.userData.o;o.userData.o=null}})}
+function select(p){if(sel)setHL(sel,false);sel=p;if(p){setHL(p,true);$('in').textContent=p.name;$('id').textContent=p.desc;$('info').style.display='block'}else $('info').style.display='none';drawList()}
+function drawList(){const L=$('list');L.innerHTML='';parts.forEach(p=>{const r=document.createElement('div');r.className='row'+(p===sel?' sel':'')+(p.g.visible?'':' off');
+const s=document.createElement('span');s.textContent=p.name;s.onclick=()=>select(p===sel?null:p);const b=document.createElement('button');b.textContent=p.g.visible?'👁':'🚫';b.setAttribute('aria-label','显示/隐藏');
+b.onclick=()=>{p.g.visible=!p.g.visible;if(!p.g.visible&&sel===p)select(null);drawList()};r.append(s,b);L.append(r)})}
+function showAll(){parts.forEach(p=>p.g.visible=true);iso=false;$('bIso').textContent='选中隔离';$('bIso').classList.remove('on');drawList()}
+$('bIso').onclick=()=>{if(iso){parts.forEach((p,i)=>p.g.visible=saved[i]);iso=false;$('bIso').textContent='选中隔离';$('bIso').classList.remove('on')}
+else if(sel){saved=parts.map(p=>p.g.visible);parts.forEach(p=>p.g.visible=p===sel);iso=true;$('bIso').textContent='取消隔离';$('bIso').classList.add('on')}else{$('stat').textContent='请先点选一个零件';setTimeout(()=>$('stat').textContent='已就绪',1500)}drawList()};
+$('bAll').onclick=showAll;
+$('bList').onclick=e=>{$('list').classList.toggle('on');e.currentTarget.classList.toggle('on')};
+$('bFree').onclick=e=>{mode=mode=='free'?'sel':'free';e.currentTarget.classList.toggle('on',mode=='free');if(mode=='free')select(null);$('stat').textContent=mode=='free'?'自由查看(点击不选中)':'已就绪'};
+$('bEx').onclick=()=>{tgt=ex>50?0:100;$('bEx').classList.toggle('on',tgt==100)};
+rg.oninput=()=>{ex=tgt=+rg.value;applyEx()};
+// 相机
+const ctl=new THREE.OrbitControls(cam,cv);ctl.enableDamping=true;ctl.dampingFactor=.08;ctl.minDistance=18;ctl.maxDistance=105;ctl.maxPolarAngle=Math.PI*.98;ctl.screenSpacePanning=true;
+const V={F:[0,11,58],S:[58,11,0],T:[0,70,.01],I:[35,29,39],R:[35,29,39]};let tw=null;
+function view(k){tw={t:0,f:cam.position.clone(),ft:ctl.target.clone(),to:new THREE.Vector3(...V[k]),tt:new THREE.Vector3(0,3.2,0)};if(k=='R'){tgt=ex=0;rg.value=0;applyEx();$('bEx').classList.remove('on');showAll();select(null)}}
+[['vF','F'],['vS','S'],['vT','T'],['vI','I'],['vR','R']].forEach(([i,k])=>$(i).onclick=()=>view(k));
+cam.position.set(...V.I);ctl.target.set(0,3.2,0);
+// 拾取(区分点按与拖动)
+const ray=new THREE.Raycaster(),pt=new THREE.Vector2();let dn=null;
+cv.addEventListener('pointerdown',e=>{dn={x:e.clientX,y:e.clientY,t:performance.now()};try{cv.setPointerCapture(e.pointerId)}catch(_){}});
+cv.addEventListener('pointerup',e=>{if(!dn||mode=='free')return;const mv=Math.hypot(e.clientX-dn.x,e.clientY-dn.y),dt=performance.now()-dn.t;dn=null;if(mv>6||dt>500)return;
+const r=cv.getBoundingClientRect();pt.set((e.clientX-r.left)/r.width*2-1,-(e.clientY-r.top)/r.height*2+1);ray.setFromCamera(pt,cam);
+const hit=ray.intersectObjects(root.children.filter(g=>g.visible),true)[0];select(hit?hit.object.userData.part:null)});
+function resize(){const w=cv.clientWidth,h=cv.clientHeight;renderer.setSize(w,h,false);cam.aspect=w/h;cam.fov=w/h<.8?58:38;cam.updateProjectionMatrix()}
+addEventListener('resize',resize);addEventListener('orientationchange',()=>setTimeout(resize,200));resize();
+cv.addEventListener('webglcontextlost',e=>{e.preventDefault();fail('WebGL 上下文丢失,请刷新页面')});
+let first=true;
+renderer.setAnimationLoop(()=>{if(Math.abs(tgt-ex)>.05){ex+=(tgt-ex)*.08;rg.value=ex;applyEx()}
+if(tw){tw.t=Math.min(1,tw.t+.04);const s=sm(tw.t);cam.position.lerpVectors(tw.f,tw.to,s);ctl.target.lerpVectors(tw.ft,tw.tt,s);if(tw.t>=1)tw=null}
+ctl.update();renderer.render(scene,cam);if(first){first=false;$('ld').style.display='none';$('stat').textContent='已就绪'}});
+rg.value=0;ex=tgt=0;applyEx();drawList();window.__mcu={parts,select,view};
+}catch(e){fail(e.message||String(e))}
+</script></body></html>
