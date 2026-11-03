@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="zh-CN"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Model 3 MCU 三维拆解</title><meta name="color-scheme" content="dark">
+<title>Model 3 Rear Drive Inverter 3DU · 3D Reference Model</title><meta name="color-scheme" content="dark">
 <style>
 :root{--bg:#0e1116;--pn:#171b22;--ln:#2a313c;--tx:#e8ecf2;--mt:#8b95a5;--ac:#3b8cff;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);color-scheme:dark}
 html,body{height:100%;margin:0;background:var(--bg);color:var(--tx);font:14px/1.4 system-ui,-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;overflow:hidden;-webkit-tap-highlight-color:transparent}
@@ -27,9 +27,9 @@ html,body{height:100%;margin:0;background:var(--bg);color:var(--tx);font:14px/1.
 #ld.err{color:#ff7b72}
 </style></head><body><div id="app">
 <canvas id="cv"></canvas>
-<div id="top"><b>Model 3 · MCU 电驱逆变器</b><small><span id="stat">加载中</span> · 依据维修资料的参考性重建 · 非原厂 CAD</small></div>
+<div id="top"><b>Model 3 · Rear Drive Inverter (3DU)</b><small><span id="stat">加载中</span> · 依据 2024+ Tesla 维修资料重建 · 非原厂 CAD</small></div>
 <div id="list"></div><div id="info"><b id="in"></b><p id="id"></p></div>
-<div id="bar"><div id="sl"><span>拆解</span><input id="rg" type="range" min="0" max="100" value="0" aria-label="拆解进度"><span id="pc">0%</span></div>
+<div id="bar"><div id="sl"><span>拆解</span><input id="rg" type="range" min="0" max="100" value="18" aria-label="拆解进度"><span id="pc">0%</span></div>
 <div id="g">
 <button id="bFree">自由查看</button><button id="bEx">拆解/装配</button><button id="bList">零件列表</button><button id="bIso">选中隔离</button><button id="bAll">显示全部</button>
 <button id="vF">正视角</button><button id="vS">侧视角</button><button id="vT">俯视角</button><button id="vI">等轴测</button><button id="vR">重置视图</button>
@@ -80,130 +80,160 @@ function ext(s,h,b=.08){const g=new THREE.ExtrudeGeometry(s,{depth:h,bevelEnable
 function ring(w,d,r,t,h,b){const s=rr(w,d,r);s.holes.push(rr(w-2*t,d-2*t,Math.max(r-t,.3)));return ext(s,h,b)}
 const parts=[];
 function part(id,name,desc,dir,stages){const g=new THREE.Group();g.name=id;root.add(g);const p={id,name,desc,g,dir:new THREE.Vector3(...dir),stages,sel:false};parts.push(p);return p}
-function add(p,geo,mat,x=0,y=0,z=0){const m=new THREE.Mesh(geo,mat);m.position.set(x,y,z);m.castShadow=m.receiveShadow=true;m.userData.part=p;p.g.add(m);return m}
+function add(p,geo,mat,x=0,y=0,z=0,name){const m=new THREE.Mesh(geo,mat);m.position.set(x,y,z);m.castShadow=m.receiveShadow=true;m.userData.part=p;if(name)m.name=name;p.g.add(m);return m}
 const B=(w,h,d)=>new THREE.BoxGeometry(w,h,d),Cy=(r,h,s=20)=>new THREE.CylinderGeometry(r,r,h,s);
 const UP=[0,1,0];
-// 1 下壳体
-const hs=part('hous','下壳体(铸铝)','铸铝壳体:底板、侧壁、安装耳、底部散热筋与冷却液接口。尺寸为近似建模,非原厂数据。',UP,[]);
-add(hs,ext(rr(30,22,2.2),1.2,.15),mAl,0,0,0);add(hs,ring(30,22,2.2,1.2,5,.15),mAl,0,1.2,0);
-for(const sx of[-1,1])for(const sz of[-1,1]){const s=rr(5,4,1);const h=new THREE.Path();h.absarc(0,0,.8,0,7,true);s.holes.push(h);add(hs,ext(s,1.2,.05),mAlD,sx*16.5,0,sz*6)}
-for(let i=0;i<13;i++)add(hs,B(.42,1.25,17.2),mAlD,-12+i*2,-.62,0);
-// Cast-in bosses and machined pads around the internal perimeter.
-for(const x of[-12.4,12.4])for(const z of[-8.2,8.2]){add(hs,Cy(.72,1.0,24),mAlD,x,5.95,z);add(hs,Cy(.34,.12,24),mAl,x,6.52,z)}
-for(const x of[-14.7,14.7])for(const z of[-7.2,7.2]){add(hs,B(1.5,1.2,3.4),mAlD,x,.55,z);add(hs,Cy(.48,1.25,20),mAl,x,.7,z)}
-// Outer wall ribs and machined flange lands.
-for(const x of[-14.9,14.9])for(let z=-5.4;z<=5.5;z+=3.6)add(hs,B(.65,3.8,1.0),mAlD,x,3.1,z);
-for(const z of[-10.3,10.3])add(hs,B(25,.42,.48),mAlD,0,5.85,z);
-// 2 上盖
-const cv_=part('cover','上盖','铸铝上盖:加强筋与周边密封圈,12 颗紧固螺栓在“紧固件”中单独管理。',UP,[[0,.4,18]]);
-add(cv_,ext(rr(30,22,2.2),.9,.18),mAl,0,6.4,0);
-for(const z of[-6,0,6])add(cv_,B(24,.5,.7),mAl,0,7.55,z);add(cv_,B(.7,.5,16),mAl,0,7.55,0);
-add(cv_,ring(29.6,21.6,2,.9,.2,0),mRub,0,6.2,0);
-// 3 紧固件
-const fs=part('bolt','上盖紧固件（布局示意）','六角头螺栓与垫圈的视觉示意；数量、间距和规格未按具体 3DU/4DU 版本定型。',UP,[[0,.4,26],[.76,1,6]]);
-const bp=[];for(const x of[-12,-6,0,6,12])for(const z of[-10.4,10.4])bp.push([x,z]);bp.push([-14.4,0],[14.4,0]);
-bp.forEach(([x,z])=>{add(fs,Cy(.55,.35,6),mBolt,x,7.5,z);add(fs,Cy(.85,.1,20),mBolt,x,7.3,z);add(fs,Cy(.3,1.6,12),mBolt,x,6.5,z)});
-// 4 冷板
-const cp=part('cold','散热底板/冷板','铝冷板承载功率模块并与壳体冷却通道配合;内部流道未建模(无可靠资料)。',UP,[[.76,1,1.5]]);
-add(cp,ext(rr(18,16,1),.6,.05),mAl,3.5,1.2,0);
-// 5 功率模块
-const pm=part('mod','功率模块 ×3(示意)','三相桥臂功率模块示意。器件类型(SiC/IGBT)依所选版本资料确定,当前待核实,不作断言。',UP,[[.41,.75,2.5],[.76,1,2]]);
-[-2,3.5,9].forEach(x=>{add(pm,ext(rr(5,14,.5),1.3,.05),mMod,x,1.8,0);
-[-5,5].forEach(z=>add(pm,B(2.6,.2,1.6),mCu,x,3.2,z));
-for(let k=0;k<6;k++)add(pm,Cy(.12,.7,8),mSil,x-1.5+k*.6,3.4,-1.2)});
-// 6 DC-link / input-filter region. Packaged rectangular representation only;
-// exact 2024 vehicle variant and internal capacitor package are not yet verified.
-const dc=part('cap','DC-Link 电容/滤波组件（封装待核）','低矮矩形封装与端子区为工程示意。2024+ Model 3 的具体逆变器版本、元件封装和内部布局尚未锁定，不代表原厂尺寸或电容数量。',[-1,.18,0],[[.41,.75,5],[.76,1,4]]);
-add(dc,ext(rr(8.4,15.2,.85),.55,.06),mAlD,-9.6,1.35,0);
-add(dc,ext(rr(7.95,14.7,.72),1.75,.08),mMod,-9.6,1.9,0);
-add(dc,B(7.65,.12,14.25),mBk,-9.6,3.72,0);
-for(let i=0;i<7;i++){const z=-5.2+i*1.72;add(dc,B(7.2,.035,.055),mCu,-9.6,3.8,z)}
-for(const x of[-12.1,-7.1]){add(dc,B(.75,.22,1.35),mCu,x,4.0,-7.7);add(dc,B(.75,.22,1.35),mCu,x,4.0,7.7);add(dc,Cy(.28,.16,20),mNickel,x,4.14,-7.7);add(dc,Cy(.28,.16,20),mNickel,x,4.14,7.7)}
-for(let i=0;i<6;i++)add(dc,B(.08,.5,13.2),mAlD,-13.25+i*.12,2.65,0);
-// 7 绝缘隔离
-const ins=part('ins','绝缘隔离件','母排与功率模块之间的绝缘片示意(材料、厚度待核实)。',UP,[[.41,.75,4],[.76,1,3]]);
-add(ins,B(21,.08,4.4),mIns,1.5,3.3,-5);
-// 8 Laminated DC busbar pair. Routing is kept schematic until exact 3DU/4DU
-// reference geometry is selected; the split planes and stepped terminals are modeled.
-const bb=part('bus','叠层铜母排/连接片','正负叠层母排、绝缘隔片和连接耳的结构示意。走向、厚度和端子间距尚未按具体 3DU/4DU 版本定型。',UP,[[.41,.75,6],[.76,1,4]]);
-add(bb,B(18.5,.22,1.55),mCu,1.0,3.45,-8.75);add(bb,B(18.5,.22,1.55),mCu,1.0,3.83,-8.75);
-add(bb,B(17.9,.045,1.48),mIns,1.0,3.61,-8.75);
-for(let i=0;i<6;i++){const x=-7.4+i*3.35;add(bb,B(1.0,.22,2.8),mCu,x,3.5,-7.35);add(bb,B(1.0,.22,2.8),mCu,x,3.88,-7.35);add(bb,Cy(.24,.12,20),mNickel,x,4.02,-7.35)}
-add(bb,B(1.2,.22,2.2),mCu,-7.2,3.45,-7.1);add(bb,B(1.2,.22,2.2),mCu,-7.2,3.83,-7.1);
-// 9 PCB
-const pb=part('pcb','驱动控制 PCB','栅极驱动与辅助电源电路示意板,元件为示意布置,非真实电路。',UP,[[.41,.75,10],[.76,1,6]]);
-add(pb,ext(rr(24,19,.8),.25,.03),mPcb,1,5.2,0);
-for(const x of[-11.5,13.5])for(const z of[-8.6,8.6])add(pb,Cy(.35,4,12),mSil,x-0.5+(x<0?0:-1),3.2,z);
-// Deterministic component placement: organized ICs, passives, solder pads and
-// a clear service-visible thermal-pad zone (rather than random floating blocks).
-for(const [x,z,w,d] of [[-8,-5,1.8,1.35],[-1.2,-5.2,1.65,1.25],[5.8,-5.1,2.0,1.55],[9.5,1.8,1.7,1.35],[-1.3,5.3,1.8,1.3],[6.3,5.3,1.55,1.2]]){
- add(pb,B(w,.22,d),mChip,x,5.58,z);add(pb,B(w*.82,.08,d*.78),mBk,x,5.73,z);
- for(let k=0;k<5;k++){const xx=x-w*.34+k*w*.17;add(pb,B(.075,.07,.13),mSil,xx,5.64,z-d*.43);add(pb,B(.075,.07,.13),mSil,xx,5.64,z+d*.43)}
+// 2024+ Model 3 REAR DRIVE INVERTER (3DU) reference reconstruction.
+// Source-confirmed architecture: cast housing + PCBA, three phase terminals,
+// discharge-resistor array covered by a gap pad, one gearbox gasket, two guide
+// pins, twelve inverter-to-gearbox fasteners, and three phase fasteners.
+// Geometry/layout not dimensioned by the public service procedure remains illustrative.
+function shapePath(points){const s=new THREE.Shape();s.moveTo(points[0][0],points[0][1]);for(let i=1;i<points.length;i++)s.lineTo(points[i][0],points[i][1]);s.closePath();return s}
+function caseOutline(){
+ const s=new THREE.Shape();
+ s.moveTo(-12.7,-9.4);s.quadraticCurveTo(-13.8,-9.2,-14.0,-8.0);
+ s.lineTo(-14.0,-5.8);s.lineTo(-14.7,-5.2);s.lineTo(-14.7,-3.8);s.lineTo(-14.0,-3.1);
+ s.lineTo(-14.0,3.2);s.lineTo(-14.7,3.9);s.lineTo(-14.7,5.3);s.lineTo(-14.0,5.9);
+ s.lineTo(-14.0,8.0);s.quadraticCurveTo(-13.8,9.2,-12.7,9.4);
+ s.lineTo(-9.0,10.2);s.lineTo(9.0,10.2);s.lineTo(12.7,9.4);
+ s.quadraticCurveTo(13.8,9.2,14.0,8.0);s.lineTo(14.0,5.9);s.lineTo(14.7,5.3);s.lineTo(14.7,3.9);s.lineTo(14.0,3.2);
+ s.lineTo(14.0,-3.1);s.lineTo(14.7,-3.8);s.lineTo(14.7,-5.2);s.lineTo(14.0,-5.8);s.lineTo(14.0,-8.0);
+ s.quadraticCurveTo(13.8,-9.2,12.7,-9.4);s.lineTo(9.0,-10.2);s.lineTo(-9.0,-10.2);s.closePath();return s;
 }
-// Small passives in regular banks along clear PCB zones.
-for(let row=0;row<3;row++)for(let col=0;col<16;col++){
- const x=-10.2+col*.62,z=(row-1)*.42+3.15;
- add(pb,B(.28,.13,.18),mChip,x,5.57,z);add(pb,B(.055,.08,.2),mSil,x-.17,5.58,z);add(pb,B(.055,.08,.2),mSil,x+.17,5.58,z);
+function pcbOutline(){
+ const s=new THREE.Shape();s.moveTo(-12.35,-8.15);s.lineTo(-10.7,-8.85);s.lineTo(-7.8,-8.85);s.lineTo(-7.15,-8.45);s.lineTo(7.5,-8.45);s.lineTo(8.1,-8.85);s.lineTo(10.8,-8.85);s.lineTo(12.35,-8.0);s.lineTo(12.35,7.8);s.lineTo(10.8,8.5);s.lineTo(7.8,8.5);s.lineTo(7.2,8.15);s.lineTo(-7.2,8.15);s.lineTo(-7.8,8.5);s.lineTo(-10.8,8.5);s.lineTo(-12.35,7.8);s.closePath();return s;
 }
-for(let row=0;row<2;row++)for(let col=0;col<14;col++){
- const x=-9.6+col*.69,z=-3.2-row*.42;
- add(pb,B(.25,.12,.16),mChip,x,5.56,z);add(pb,B(.05,.07,.18),mSil,x-.15,5.57,z);add(pb,B(.05,.07,.18),mSil,x+.15,5.57,z);
+function ringShape(outer,inner){outer.holes.push(inner);return outer}
+
+// 1. Cast aluminum inverter housing: broad tray, perimeter wall and machined flange.
+const hs=part('hous','铸铝逆变器壳体','官方 2024+ 3DU 维修流程确认逆变器有独立壳体；外轮廓、壁厚、铸造筋和安装耳为按官方拆解照片进行的比例重建，非原厂尺寸。',UP,[]);
+const caseShape=caseOutline();
+add(hs,ext(caseShape,.92,.10),mAl,0,-1.35,0,'铸铝底壳');
+const wallOuter=caseOutline(),wallInner=rr(26.7,18.2,1.1);
+add(hs,ext(ringShape(wallOuter,wallInner),1.42,.07),mAl,0,-.48,0,'周边壳壁');
+add(hs,ext(rr(31.1,22.8,1.7),.18,.045),mAlD,0,-.50,0,'加工安装法兰');
+// Inner machined lands and ribs, kept low so the PCBA remains the dominant feature.
+for(const x of[-11.8,11.8])for(const z of[-6.9,6.9]){
+ add(hs,Cy(.64,.30,24),mAlD,x,.02,z,'PCB 支撑凸台');
+ add(hs,Cy(.25,.12,20),mNickel,x,.22,z,'支撑凸台螺纹衬套');
 }
-for(let i=0;i<12;i++){const x=-9.2+i*1.55;add(pb,Cy(.16,.12,14),mSil,x,5.58,-7.9);add(pb,Cy(.16,.12,14),mSil,x,5.58,7.9)}
-add(pb,B(1.35,.24,1.15),mChip,10.1,5.62,-1.5);add(pb,B(1.12,.08,.92),mBk,10.1,5.77,-1.5);
-// 10-12 接口
-const hv=part('hv','高压连接器','橙色高压端子座(外形示意),含密封圈与锁止卡扣。',[0,0,-1],[[.76,1,5]]);
-add(hv,B(6,4,3),mOr,-9.5,3.6,-12.4);add(hv,B(7,5,.3),mRub,-9.5,3.6,-10.9);add(hv,B(2.5,.6,1),mBk,-9.5,5.8,-12.4);
-const lv=part('lv','低压信号连接器','黑色多针低压接口,含防水密封(针数为示意)。',[0,0,-1],[[.76,1,5]]);
-add(lv,B(8,3.5,2.4),mBk,8,3.6,-12.2);add(lv,B(9,4.5,.3),mRub,8,3.6,-10.9);
-for(let i=0;i<6;i++)for(let j=0;j<2;j++)add(lv,B(.3,.3,.5),mSil,5.5+i*.5*1.0*2.0/2,3.1+j*.8,-13.6);
-// 12 Three inverter-to-motor phase lugs. Tesla service procedures identify
-// three phase-terminal fasteners; terminal profile/spacing remains version-specific.
-function phaseLugGeometry(w,h,t,r){const sh=new THREE.Shape();sh.moveTo(-w/2,0);sh.lineTo(w/2,0);sh.lineTo(w/2,h-r);sh.quadraticCurveTo(w/2,h,w/2-r,h);sh.lineTo(-w/2+r,h);sh.quadraticCurveTo(-w/2,h,-w/2,h-r);sh.lineTo(-w/2,0);const hole=new THREE.Path();hole.absarc(0,h-r-.42,r,0,Math.PI*2,true);sh.holes.push(hole);return new THREE.ExtrudeGeometry(sh,{depth:t,bevelEnabled:true,bevelSize:.035,bevelThickness:.035,bevelSegments:2,curveSegments:16})}
-const ph=part('ph','电机三相端子 ×3','维修手册确认逆变器与电机之间有 3 个相位端子连接点及对应紧固件。端子外形、间距和尺寸仍需按具体 3DU/4DU 实物核实。',[0,0,1],[[.76,1,5]]);
-for(const x of[-3.4,1.0,5.4]){
- add(ph,B(1.9,.34,1.65),mIns,x,2.8,9.7);
- const lug=add(ph,phaseLugGeometry(1.18,3.25,.32,.31),mCu,x,2.92,10.15);lug.name='三相铜端子';
- const washer=new THREE.Mesh(new THREE.TorusGeometry(.34,.065,10,24),mNickel);washer.position.set(x,5.75,10.5);washer.userData.part=ph;ph.g.add(washer);
- const bolt=add(ph,Cy(.22,.55,12).rotateX(Math.PI/2),mBolt,x,5.75,10.54);bolt.name='相位端子螺栓';
- add(ph,B(.18,.08,.58),mBk,x,5.75,10.85);
+for(let i=0;i<9;i++)add(hs,B(.42,.18,12.8),mAlD,-10.0+i*2.5,-.88,0,'壳体内加强筋');
+for(const z of[-6.5,-3.2,0,3.2,6.5]){
+ add(hs,B(.55,.50,1.05),mAlD,-13.35,-.12,z,'侧壁铸造加强筋');
+ add(hs,B(.55,.50,1.05),mAlD,13.35,-.12,z,'侧壁铸造加强筋');
 }
-// 13 Perimeter seal at the inverter / gearbox mating plane.
-const gasket=part('gasket','上盖密封圈','上盖与壳体之间的周边密封圈；外形为参考性建模，不代表原厂截面尺寸。',UP,[[0,.22,1.2],[.22,.55,.8]]);
-add(gasket,ring(29.6,21.6,2.0,.42,.22,0),mRub,0,6.13,0);
-// 14 Gearbox-interface gasket: Tesla service procedures require a new inverter gasket.
-const gearGasket=part('gearGasket','驱动单元接口密封垫','Tesla 维修流程要求逆变器安装时使用新的接口垫片；当前轮廓仅为结构示意，非原厂尺寸。',UP,[[0,.25,1.4],[.25,.55,.9]]);
-add(gearGasket,ring(30.4,22.4,2.1,.48,.16,0),mRub,0,-.12,0);
-// 15 Two alignment dowels, explicitly documented in 2024+ 3DU/4DU procedures.
-const pins=part('pins','装配定位销 ×2','Tesla 2024+ 维修流程记载逆变器与驱动单元通过 2 个定位销对位；此处位置为结构示意。',UP,[[.1,.42,1.5],[.42,.7,1.0]]);
-for(const x of[-10.8,10.8]){add(pins,Cy(.22,.72,20),mNickel,x,-.24,0);add(pins,Cy(.31,.10,20),mAlD,x,-.58,0)}
-// 15b Gearbox mating fastener locations; the count/pattern is deliberately not tied to one drive-unit revision.
-const mount=part('mount','变速箱接口紧固点','用于表示逆变器与驱动单元变速箱之间的周边紧固位置。Tesla 维修资料显示不同 3DU/4DU 版本的螺栓数量并不相同，因此此处仅作位置示意。',UP,[[.12,.48,1.2],[.48,.75,.8]]);
-for(const [x,z] of [[-12,-8.7],[-6,-9.8],[0,-9.8],[6,-9.8],[12,-8.7],[-12,8.7],[-6,9.8],[0,9.8],[6,9.8],[12,8.7]]){add(mount,Cy(.34,.18,10),mBolt,x,-.08,z);add(mount,Cy(.22,.22,6),mNickel,x,-.22,z)}
-// 15 Coolant fluid couplings / hose interfaces. Internal passages are not guessed.
-const cool=part('cool','冷却液流体接头 ×2','维修手册记载逆变器冷却液软管、流体耦合器及排液步骤；接口外观为示意，内部流道未按原厂图纸建模。',[1,0,0],[[.5,.82,3],[.82,1,2]]);
-for(const z of[-4.8,4.8]){
- add(cool,B(1.25,1.3,1.35),mAlD,15.0,2.8,z);
- add(cool,Cy(.78,1.0,8).rotateZ(Math.PI/2),mAl,15.85,2.8,z);
- add(cool,Cy(.59,.22,24).rotateZ(Math.PI/2),mRub,16.45,2.8,z);
- add(cool,Cy(.47,1.25,24).rotateZ(Math.PI/2),mAlD,17.0,2.8,z);
- add(cool,Cy(.53,.16,24).rotateZ(Math.PI/2),mBolt,17.38,2.8,z);
- add(cool,Cy(.38,.85,24).rotateZ(Math.PI/2),mRub,17.85,2.8,z);
+for(const [x,z] of [[-13.8,-4.6],[-13.8,4.6],[13.8,-4.6],[13.8,4.6]]){
+ add(hs,Cy(.72,.24,24),mAlD,x,-.48,z,'壳体安装耳');
+ add(hs,Cy(.34,.26,24),mBk,x,-.32,z,'安装耳通孔衬面');
 }
-// 16 Logic connector with a visible latch and seal; pin count is illustrative.
-const logic=part('logic','低压逻辑连接器','2024+ 维修流程确认逆变器逻辑连接器；壳体、锁扣及针脚数量为视觉示意。',[0,0,-1],[[.55,.84,3],[.84,1,2]]);
-add(logic,B(4.8,1.8,2.1),mBk,8.8,4.1,-11.2);add(logic,B(5.2,.22,.32),mRub,8.8,3.45,-12.25);
-add(logic,B(3.8,.42,.55),mAlD,8.8,5.15,-11.45);add(logic,B(3.2,.24,.22),mNickel,8.8,5.42,-11.72);
-for(let i=0;i<12;i++)add(logic,B(.13,.16,.35),mNickel,7.3+i*.27,4.0,-12.35);
-for(const x of[6.55,11.05])add(logic,Cy(.22,.22,16),mBolt,x,3.35,-11.7);
-// 17 Discharge-resistor array plus removable pink gap pad (service-visible feature).
-const discharge=part('discharge','放电电阻阵列','维修手册明确要求 PCB 上的 gap pad 完整覆盖放电电阻阵列；电阻数量、位置和阻值在此仅作可拆解示意。',UP,[[.42,.72,2.4],[.72,1,2]]);
-for(let i=0;i<10;i++){const x=-7.1+i*.37;add(discharge,B(.27,.18,.55),mCer,x,5.66,-.05);add(discharge,B(.06,.09,.62),mNickel,x-.14,5.68,-.05);add(discharge,B(.06,.09,.62),mNickel,x+.14,5.68,-.05)}
-const gap=part('gap','粉色绝缘导热垫（Gap Pad）','维修手册要求导热垫完整覆盖放电电阻阵列且不得露出电阻；颜色仅用于识别材料区域，尺寸/位置仍为示意。',UP,[[.4,.68,3.1],[.68,1,2]]);
-add(gap,ext(rr(4.45,1.65,.24),.22,.04),mPink,-5.25,5.78,-.05);
-// 18 Ground strap attachment point, shown as a reference feature on the housing.
-const ground=part('ground','壳体接地固定点','维修资料列有驱动单元接地带；该紧固点和接线片为结构参考，位置待具体版本实物验证。',UP,[[.62,.9,2],[.9,1,1.5]]);
-add(ground,Cy(.38,.32,20),mAlD,-14.8,5.6,8.2);add(ground,Cy(.22,.42,16),mNickel,-14.8,5.92,8.2);add(ground,B(2.0,.12,.45),mCu,-13.8,5.93,8.2);add(ground,B(1.0,.12,.18),mCu,-12.9,5.96,8.2);
+
+// 2. Single gearbox-interface gasket documented by Tesla's 3DU procedure.
+const gasket=part('gasket','驱动单元接口密封垫 ×1','2024+ 后驱 3DU 维修流程要求安装 1 个新垫片；本模型只表示接口密封件，不把它误作另一个上盖密封圈。轮廓和截面仍为示意。',[0,-1,0],[[.05,.32,1.7],[.32,.62,.5]]);
+add(gasket,ext(ringShape(caseOutline(),rr(28.0,18.3,1.2)),.12,.018),mRub,0,-1.48,0,'单件接口密封垫');
+
+// 3. Two alignment / guide pins documented in the 3DU procedure.
+const pins=part('pins','驱动单元定位销 ×2','Tesla 2024+ Rear Drive Inverter (3DU) 安装步骤明确记载 2 个 guide pins；具体坐标按示意布置。',[0,-1,0],[[.08,.34,1.5],[.34,.58,.6]]);
+for(const [x,z] of [[-10.9,-8.1],[10.9,8.1]]){
+ add(pins,Cy(.22,.92,24),mNickel,x,-1.38,z,'定位销');
+ add(pins,Cy(.30,.12,24),mAlD,x,-.87,z,'定位销座');
+}
+
+// 4. Twelve gearbox mounting fasteners: count is confirmed, exact pattern is not.
+const mount=part('mount','壳体固定螺栓 ×12','官方 2024+ 3DU 流程确认 12 颗螺栓将逆变器固定到后驱变速箱；本模型只表达数量和接口用途，孔位分布未按原厂工程图定尺寸。',[0,-1,0],[[.02,.34,1.8],[.34,.62,.7]]);
+const mountPts=[[-11.0,-9.0],[-5.5,-10.0],[0,-10.0],[5.5,-10.0],[11.0,-9.0],[-13.6,-4.8],[13.6,-4.8],[-13.6,4.8],[13.6,4.8],[-11.0,9.0],[-5.5,10.0],[5.5,10.0]];
+for(const [x,z] of mountPts){
+ add(mount,Cy(.30,.18,12),mBolt,x,-1.42,z,'EP10 固定螺栓头');
+ add(mount,Cy(.18,.82,12),mNickel,x,-.92,z,'固定螺栓杆');
+ add(mount,Cy(.40,.08,24),mAlD,x,-1.31,z,'固定螺栓垫面');
+}
+
+// 5. Main inverter PCBA: irregular outline, screw lands and dense component field.
+const pcb=part('pcb','逆变器 PCBA 主板','官方 3DU 维修照片可见一块覆盖壳体内部的大型绿色 PCBA，包含功率/控制器件和三个相位铜端子。板外形与元件坐标为参考照片重建，非原厂 CAD。',UP,[[.42,.72,2.2],[.72,.92,1.4]]);
+add(pcb,ext(pcbOutline(),.20,.035),mPcb,0,.12,0,'绿色逆变器 PCBA');
+// Board perimeter plated mounting holes and restrained screw heads.
+const pcbScrews=[[-11.5,-7.5],[-7.6,-8.0],[7.6,-8.0],[11.5,-7.5],[-11.5,7.2],[-7.6,7.7],[7.6,7.7],[11.5,7.2]];
+for(const [x,z] of pcbScrews){
+ add(pcb,Cy(.31,.045,24),mCu,x,.245,z,'PCB 镀金安装孔');
+ add(pcb,Cy(.12,.10,12),mNickel,x,.28,z,'PCB 固定螺钉');
+}
+// PCB copper pads / silkscreen banks which are visible in the service photograph.
+for(let row=0;row<2;row++)for(let col=0;col<4;col++){
+ const x=-8.4+col*5.55,z=-5.0+row*9.7;
+ add(pcb,B(2.45,.025,.88),mCu,x,.238,z,'功率器件焊盘区');
+ for(let k=0;k<5;k++)add(pcb,B(.17,.026,.68),mNickel,x-0.88+k*.44,.258,z,'焊盘接触面');
+}
+// Structured power-electronics packages, deliberately kept low-profile (no invented discrete modules).
+const electronics=part('electronics','功率与控制元件阵列','按官方维修照片中 PCBA 上分布的低矮功率器件、IC、贴片元件和电容建立视觉细节；器件型号、数量及电路功能未由公开维修步骤逐一确认。',UP,[[.45,.74,1.0],[.74,.94,.7]]);
+const chipDefs=[[-9.7,-5.6,1.3,.9],[-6.7,-5.5,1.45,1.0],[-3.7,-5.5,1.2,.9],[0,-5.5,1.5,1.0],[3.5,-5.4,1.3,.9],[7.2,-5.2,1.5,1.0],[10,-2.2,1.2,.9],[-9.8,1.8,1.4,1.0],[-6.5,2.2,1.3,.9],[-2.9,2.2,1.5,1.0],[1.1,2.3,1.3,.9],[4.6,2.4,1.5,1.0],[8.2,2.5,1.25,.9],[-8.8,5.9,1.4,.9],[-5.3,5.8,1.2,.85],[0,5.9,1.5,.95],[4.0,5.8,1.3,.9],[8.2,5.8,1.5,.95]];
+for(let i=0;i<chipDefs.length;i++){
+ const [x,z,w,d]=chipDefs[i];
+ add(electronics,B(w,.20,d),mChip,x,.34,z,'功率/控制封装');
+ add(electronics,B(w*.78,.055,d*.76),mBk,x,.465,z,'封装顶面');
+ for(let k=0;k<4;k++){
+  const xx=x-w*.32+k*w*.213;
+  add(electronics,B(.07,.05,.13),mNickel,xx,.43,z-d*.44,'器件焊端');
+  add(electronics,B(.07,.05,.13),mNickel,xx,.43,z+d*.44,'器件焊端');
+ }
+}
+// Small passive banks in regular rows, not random blocks.
+for(let row=0;row<4;row++)for(let col=0;col<20;col++){
+ const x=-10.6+col*1.1,z=-3.65+row*.86;
+ add(electronics,B(.30,.10,.18),mChip,x,.34,z,'贴片电阻/电容');
+ add(electronics,B(.055,.07,.20),mNickel,x-.18,.36,z,'贴片焊端');
+ add(electronics,B(.055,.07,.20),mNickel,x+.18,.36,z,'贴片焊端');
+}
+// Small metal can capacitors grouped at a board corner as seen in the reference image.
+for(let i=0;i<4;i++){
+ const x=8.2+(i%2)*1.0,z=0.3+Math.floor(i/2)*1.2;
+ add(electronics,Cy(.34,.52,24),mSil,x,.58,z,'小型金属电容');
+ add(electronics,Cy(.22,.045,20),mNickel,x,.85,z,'电容顶盖');
+}
+// 6. Discharge resistor array (visible when the thermal gap pad is exploded away).
+const discharge=part('discharge','放电电阻阵列','Tesla 2024+ 3DU 维修步骤明确要求检查放电电阻阵列，并确认 Gap Pad 完整覆盖电阻、不得露出。阵列外观和单体数量为示意。',UP,[[.4,.68,1.25],[.68,.9,.7]]);
+for(let i=0;i<8;i++){
+ const x=-2.8+i*.8;
+ add(discharge,B(.54,.18,.68),mCer,x,.50,-.15,'放电电阻');
+ add(discharge,B(.12,.10,.72),mNickel,x-.25,.54,-.15,'电阻端帽');
+ add(discharge,B(.12,.10,.72),mNickel,x+.25,.54,-.15,'电阻端帽');
+}
+// 7. Pink thermal interface gap pad placed over the resistor array.
+const gap=part('gap','粉色绝缘导热垫（Gap Pad）','官方维修手册要求 Gap Pad 完整覆盖放电电阻阵列、不得露出电阻，并保持清洁、平整粘附。此处以独立零件表示，便于拆解观察。',UP,[[.25,.52,1.5],[.52,.78,.8]]);
+add(gap,ext(rr(7.35,1.35,.20),.12,.025),mPink,-.05,.78,-.15,'Gap Pad');
+
+// 8. Three inverter-to-motor phase lugs and their three fasteners.
+function phaseTabGeometry(){
+ const sh=new THREE.Shape();sh.moveTo(-.57,0);sh.lineTo(.57,0);sh.lineTo(.57,2.50);sh.quadraticCurveTo(.57,3.08,.12,3.20);sh.lineTo(-.12,3.20);sh.quadraticCurveTo(-.57,3.08,-.57,2.50);sh.closePath();
+ const hole=new THREE.Path();hole.absarc(0,2.64,.22,0,Math.PI*2,true);sh.holes.push(hole);
+ return new THREE.ExtrudeGeometry(sh,{depth:.22,bevelEnabled:true,bevelSize:.035,bevelThickness:.035,bevelSegments:3,curveSegments:20});
+}
+const phase=part('phase','电机三相铜端子 ×3','Tesla 2024+ 3DU 流程确认逆变器与电机三相端子有 3 个独立螺栓连接点。官方拆解照片可见三片竖直铜色端子；形状和中心距按照片估算。',[0,0,-1],[[.55,.82,1.5],[.82,1,1.0]]);
+for(let i=0;i<3;i++){
+ const x=-3.0+i*3.0;
+ add(phase,B(1.35,.20,.68),mBk,x,.32,-8.42,'相位端子绝缘底座');
+ add(phase,phaseTabGeometry(),mCu,x,.40,-8.86,'竖直铜相位端子');
+ add(phase,new THREE.TorusGeometry(.245,.055,10,24),mNickel,x,3.02,-8.61,'相位端子垫圈');
+ add(phase,Cy(.16,.42,16).rotateX(Math.PI/2),mBolt,x,3.02,-8.57,'相位连接螺栓');
+}
+
+// 9. Coolant connection area. The service procedure confirms an inverter inlet tube
+// and an inverter-to-cooler hose; exact port form/spacing is not dimensioned here.
+const cool=part('cool','冷却液管路接口区','2024+ 3DU 维修流程记录逆变器 inlet tube、inverter-to-cooler hose、fluid coupling 及堵头拆装；本模型仅表示接口区域，不臆造内部冷却流道和精确接头尺寸。',[1,0,0],[[.52,.82,1.6],[.82,1,1.0]]);
+for(const z of[-4.1,4.1]){
+ add(cool,B(1.0,.82,1.35),mAlD,13.65,.05,z,'冷却接口铸造座');
+ add(cool,Cy(.58,.92,24).rotateZ(Math.PI/2),mAl,14.30,.10,z,'冷却液接头');
+ add(cool,Cy(.43,.18,24).rotateZ(Math.PI/2),mRub,14.80,.10,z,'接头密封圈');
+ add(cool,Cy(.34,.50,24).rotateZ(Math.PI/2),mBk,15.10,.10,z,'管路连接端');
+}
+
+// 10. Separate removable top cover; a relief notch leaves the three phase tabs exposed.
+function coverOutline(){const s=new THREE.Shape();s.moveTo(-12.9,-10.15);s.lineTo(12.9,-10.15);s.quadraticCurveTo(14.2,-10.15,14.2,-8.8);s.lineTo(14.2,8.8);s.quadraticCurveTo(14.2,10.0,12.9,10.0);s.lineTo(5.3,10.0);s.lineTo(5.3,7.55);s.lineTo(-5.3,7.55);s.lineTo(-5.3,10.0);s.lineTo(-12.9,10.0);s.quadraticCurveTo(-14.2,10.0,-14.2,8.8);s.lineTo(-14.2,-8.8);s.quadraticCurveTo(-14.2,-10.15,-12.9,-10.15);s.closePath();return s}
+const cover=part('cover','铸铝上盖','展示用可拆上盖，用来表现 PCBA 在铸铝壳体内的保护关系。官方维修流程可确认逆变器壳体和 PCBA，但未在该步骤中给出上盖的外形尺寸及内部加强筋细节。',UP,[[.04,.44,5.0],[.44,.72,1.3]]);
+add(cover,ext(coverOutline(),.58,.11),mAl,0,1.02,0,'铸铝上盖外壳');
+add(cover,ext(rr(25.9,15.8,1.25),.12,.045),mAlD,0,.94,.8,'上盖内侧加强面');
+for(let i=0;i<7;i++)add(cover,B(.42,.22,13.4),mAlD,-10.8+i*3.6,.86,0,'上盖内侧加强筋');
+// No unverified DC-link capacitor bank, three discrete power modules or invented
+// internal liquid channels are included in this 3DU reference build.
+
 // Mark edge helpers as belonging to their parent part for stable picking.
 parts.forEach(p=>p.g.children.slice().forEach(m=>{if(m.isMesh&&m.geometry.type=='ExtrudeGeometry'){const l=new THREE.LineSegments(new THREE.EdgesGeometry(m.geometry,40),edgeMat);l.position.copy(m.position);l.userData.part=p;l.raycast=()=>{};p.g.add(l)}}));
 parts.forEach(p=>p.g.userData.base=p.g.position.clone());
@@ -228,23 +258,23 @@ $('bEx').onclick=()=>{tgt=ex>50?0:100;$('bEx').classList.toggle('on',tgt==100)};
 rg.oninput=()=>{ex=tgt=+rg.value;applyEx()};
 // 相机
 const ctl=new THREE.OrbitControls(cam,cv);ctl.enableDamping=true;ctl.dampingFactor=.08;ctl.minDistance=18;ctl.maxDistance=105;ctl.maxPolarAngle=Math.PI*.98;ctl.screenSpacePanning=true;
-const V={F:[0,11,58],S:[58,11,0],T:[0,70,.01],I:[35,29,39],R:[35,29,39]};let tw=null;
-function view(k){tw={t:0,f:cam.position.clone(),ft:ctl.target.clone(),to:new THREE.Vector3(...V[k]),tt:new THREE.Vector3(0,3.2,0)};if(k=='R'){tgt=ex=0;rg.value=0;applyEx();$('bEx').classList.remove('on');showAll();select(null)}}
+const V={F:[0,9,48],S:[48,9,0],T:[0,59,.01],I:[31,25,34],R:[31,25,34]};let tw=null;
+function view(k){tw={t:0,f:cam.position.clone(),ft:ctl.target.clone(),to:new THREE.Vector3(...V[k]),tt:new THREE.Vector3(0,.1,0)};if(k=='R'){tgt=ex=0;rg.value=0;applyEx();$('bEx').classList.remove('on');showAll();select(null)}}
 [['vF','F'],['vS','S'],['vT','T'],['vI','I'],['vR','R']].forEach(([i,k])=>$(i).onclick=()=>view(k));
-cam.position.set(...V.I);ctl.target.set(0,3.2,0);
+cam.position.set(...V.I);ctl.target.set(0,.1,0);
 // 拾取(区分点按与拖动)
 const ray=new THREE.Raycaster(),pt=new THREE.Vector2();let dn=null;
 cv.addEventListener('pointerdown',e=>{dn={x:e.clientX,y:e.clientY,t:performance.now()};try{cv.setPointerCapture(e.pointerId)}catch(_){}});
 cv.addEventListener('pointerup',e=>{if(!dn||mode=='free')return;const mv=Math.hypot(e.clientX-dn.x,e.clientY-dn.y),dt=performance.now()-dn.t;dn=null;if(mv>6||dt>500)return;
 const r=cv.getBoundingClientRect();pt.set((e.clientX-r.left)/r.width*2-1,-(e.clientY-r.top)/r.height*2+1);ray.setFromCamera(pt,cam);
 const hit=ray.intersectObjects(root.children.filter(g=>g.visible),true)[0];select(hit?hit.object.userData.part:null)});
-function resize(){const w=cv.clientWidth,h=cv.clientHeight;renderer.setSize(w,h,false);cam.aspect=w/h;cam.fov=w/h<.8?58:38;cam.updateProjectionMatrix()}
+function resize(){const w=Math.max(1,cv.clientWidth),h=Math.max(1,cv.clientHeight);renderer.setSize(w,h,false);cam.aspect=w/h;cam.fov=w/h<.8?50:38;cam.updateProjectionMatrix()}
 addEventListener('resize',resize);addEventListener('orientationchange',()=>setTimeout(resize,200));resize();
 cv.addEventListener('webglcontextlost',e=>{e.preventDefault();fail('WebGL 上下文丢失,请刷新页面')});
 let first=true;
 renderer.setAnimationLoop(()=>{if(Math.abs(tgt-ex)>.05){ex+=(tgt-ex)*.08;rg.value=ex;applyEx()}
 if(tw){tw.t=Math.min(1,tw.t+.04);const s=sm(tw.t);cam.position.lerpVectors(tw.f,tw.to,s);ctl.target.lerpVectors(tw.ft,tw.tt,s);if(tw.t>=1)tw=null}
 ctl.update();renderer.render(scene,cam);if(first){first=false;$('ld').style.display='none';$('stat').textContent='已就绪'}});
-rg.value=0;ex=tgt=0;applyEx();drawList();window.__mcu={parts,select,view};
+rg.value=18;ex=tgt=18;applyEx();drawList();window.__mcu={parts,select,view};
 }catch(e){fail(e.message||String(e))}
 </script></body></html>
